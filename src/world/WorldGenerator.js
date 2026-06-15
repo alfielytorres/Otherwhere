@@ -58,9 +58,9 @@ function createLampInstances(scene, lampPositions) {
   poleMesh.instanceMatrix.needsUpdate = true;
   scene.add(poleMesh);
 
-  // Sodium-orange bulbs (emissive)
+  // Sodium-orange bulbs — bright emissive so they look like real street lights
   const bulbGeo = new THREE.SphereGeometry(0.35, 5, 4);
-  const bulbMat = emissiveMat(0xFF6600, 1.6);
+  const bulbMat = emissiveMat(0xFF8833, 4.0);
   const bulbMesh = new THREE.InstancedMesh(bulbGeo, bulbMat, lampPositions.length);
   lampPositions.forEach(([x, z], i) => {
     dummy.position.set(x, 6.2, z);
@@ -189,12 +189,12 @@ function createBuilding(scene, bdata) {
     group.add(steeple);
   }
 
-  // Lit windows — one emissive strip per floor (avoids hundreds of individual meshes)
+  // Lit windows — one emissive strip per floor (bright at night)
   const winRows = Math.min(3, Math.max(1, Math.floor(height / 5)));
-  const winColor = isRedLight ? 0xff5588 : 0xffcc66;
+  const winColor = isRedLight ? 0xff5588 : 0xffdd77;
   for (let row = 0; row < winRows; row++) {
-    const winMat = emissiveMat(winColor, 0.7);
-    const winStrip = new THREE.Mesh(new THREE.BoxGeometry(w * 0.75, 0.6, 0.15), winMat);
+    const winMat = emissiveMat(winColor, 2.0);
+    const winStrip = new THREE.Mesh(new THREE.BoxGeometry(w * 0.75, 0.65, 0.15), winMat);
     const wY = (row + 1) * (height / (winRows + 1));
     winStrip.position.set(0, wY, d / 2 + 0.08);
     group.add(winStrip);
@@ -358,12 +358,28 @@ export function generateWorld(scene) {
   const hemiLight = new THREE.HemisphereLight(0x223355, 0x1a1208, 0.6);
   scene.add(hemiLight);
 
-  // Sodium street lamp pools — 4 PointLights at main intersections
-  const streetLampPositions = [[0, 0], [60, 0], [-60, 0], [0, -60]];
-  for (const [lx, lz] of streetLampPositions) {
-    const l = new THREE.PointLight(0xff8822, 1.2, 60);
-    l.position.set(lx, 6, lz);
+  // Sodium streetlight pools — along every road at 40-unit intervals
+  // Keep total under 12 to stay GPU-friendly
+  const streetLightSpots = [
+    // Main N-S road
+    [6, -120], [6, -80], [6, -40], [6, 0], [6, 40], [6, 80],
+    // Main E-W road
+    [-80, -6], [-40, -6], [0, -6], [40, -6], [80, -6],
+    // Red-light district extra glow
+    [0, 95]
+  ];
+  for (const [lx, lz] of streetLightSpots) {
+    const l = new THREE.PointLight(0xff8822, 2.5, 55);
+    l.position.set(lx, 6.5, lz);
     scene.add(l);
+  }
+
+  // Building façade lights — each building's front gets a warm wash
+  for (const bdata of BUILDINGS) {
+    if (bdata.isOutdoor) continue;
+    const facadeLight = new THREE.PointLight(0xffcc88, 1.5, 20);
+    facadeLight.position.set(bdata.x, 4, bdata.z + (bdata.depth || 10) / 2 + 4);
+    scene.add(facadeLight);
   }
 
   return { water, buildingMeshObjects, ambientLight, sunLight };

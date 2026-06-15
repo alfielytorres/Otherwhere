@@ -62,7 +62,7 @@ export class Game {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = false;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.4;
+    this.renderer.toneMappingExposure = 1.8;
 
     window.addEventListener('resize', () => this._onResize());
   }
@@ -321,6 +321,13 @@ export class Game {
       const t = timestamp * 0.001;
       this.water.position.y = 0.15 + Math.sin(t * 0.8) * 0.05;
       this.water.material.opacity = 0.75 + Math.sin(t * 1.2) * 0.1;
+    }
+
+    // Animate nightclub dancers in the active interior
+    if (this._activeInterior && this._activeInterior.group.visible && this._activeInterior.dancers) {
+      for (const dancer of this._activeInterior.dancers) {
+        dancer.rotation.y += delta * 1.8;
+      }
     }
 
     // Update HUD

@@ -88,6 +88,36 @@ function addPointLight(group, color, intensity, x, y, z, distance = 12) {
   group.add(bulb);
 }
 
+// Simple dancer figure for clubs
+function makeDancer(outfitColor = 0xff66aa, pose = 0) {
+  const g = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({ color: 0xc68642, roughness: 0.8 });
+  const outfit = new THREE.MeshStandardMaterial({ color: outfitColor, roughness: 0.6,
+    emissive: new THREE.Color(outfitColor), emissiveIntensity: 0.3 });
+  // Body
+  g.add(box(0.22, 0.55, 0.14, outfit, 0, 0.9, 0));
+  // Head
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 6, 5), skin);
+  head.position.set(0, 1.47, 0);
+  g.add(head);
+  // Hair
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 5, 0, Math.PI * 2, 0, Math.PI * 0.5),
+    new THREE.MeshStandardMaterial({ color: 0x1a0a0a }));
+  hair.position.set(0, 1.53, 0);
+  g.add(hair);
+  // Arms raised (dancing pose)
+  const armL = box(0.08, 0.32, 0.08, outfit, -0.2, 1.2, 0);
+  armL.rotation.z = pose === 1 ? 0.8 : -0.5;
+  g.add(armL);
+  const armR = box(0.08, 0.32, 0.08, outfit, 0.2, 1.2, 0);
+  armR.rotation.z = pose === 1 ? -0.5 : 0.8;
+  g.add(armR);
+  // Legs
+  g.add(box(0.09, 0.4, 0.09, new THREE.MeshStandardMaterial({ color: 0x111111 }), -0.08, 0.42, 0));
+  g.add(box(0.09, 0.4, 0.09, new THREE.MeshStandardMaterial({ color: 0x111111 }), 0.08, 0.42, 0));
+  return g;
+}
+
 // Reusable furniture
 function makeChair(seatColor = 0x222222) {
   const g = new THREE.Group();
@@ -645,12 +675,25 @@ function buildKaraoke(group, W, H, D) {
   ball.position.set(0, H - 0.5, 0);
   group.add(ball);
 
-  // Colored lights
-  addPointLight(group, 0xff0099, 0.9, -2, H - 1, 0, 12);
-  addPointLight(group, 0x6600ff, 0.9, 2, H - 1, 0, 12);
-  addPointLight(group, 0x0099ff, 0.7, 0, H - 1, 2, 12);
+  // Colored lights — boosted
+  addPointLight(group, 0xff0099, 2.0, -2, H - 1, 0, 16);
+  addPointLight(group, 0x6600ff, 2.0, 2, H - 1, 0, 16);
+  addPointLight(group, 0x0099ff, 1.5, 0, H - 1, 2, 14);
+
+  // Dancers on the disco floor
+  const dancerPivotA = new THREE.Group();
+  dancerPivotA.position.set(-2, 0, -1);
+  dancerPivotA.add(makeDancer(0xff00ff, 0));
+  group.add(dancerPivotA);
+
+  const dancerPivotB = new THREE.Group();
+  dancerPivotB.position.set(2, 0, -1);
+  dancerPivotB.rotation.y = Math.PI;
+  dancerPivotB.add(makeDancer(0x00ffff, 1));
+  group.add(dancerPivotB);
 
   return {
+    dancers: [dancerPivotA, dancerPivotB],
     interactionZones: [
       { x: 0, z: -1, radius: 3, activityKeys: ['SING'], label: 'Kumanta' },
       { x: 0, z: 2.5, radius: 2.5, activityKeys: ['DRINK', 'SOCIALIZE'], label: 'Uminom' }
@@ -817,13 +860,31 @@ function buildGirlieBar(group, W, H, D) {
   group.add(emissivePanel(2.5, 0.8, 0xff0099, -W / 2 + 1.8, H - 1, -D / 2 + 0.1));
   group.add(emissivePanel(2.5, 0.8, 0x00aaff, W / 2 - 1.8, H - 1, -D / 2 + 0.1));
 
-  // Red/pink/purple lighting
-  addPointLight(group, 0xff0066, 1.0, -4, H - 0.5, 0, 14);
-  addPointLight(group, 0xcc00ff, 0.9, 4, H - 0.5, 0, 14);
-  addPointLight(group, 0xff3399, 1.0, 0, H - 1, D / 2 - 2.5, 12);
-  addPointLight(group, 0xff6600, 0.6, 0, H - 0.5, -D / 2 + 2, 12);
+  // Red/pink/purple lighting — boosted
+  addPointLight(group, 0xff0066, 2.5, -4, H - 0.5, 0, 18);
+  addPointLight(group, 0xcc00ff, 2.0, 4, H - 0.5, 0, 18);
+  addPointLight(group, 0xff3399, 2.5, 0, H - 1, D / 2 - 2.5, 16);
+  addPointLight(group, 0xff6600, 1.5, 0, H - 0.5, -D / 2 + 2, 14);
+
+  // Pole dancer 1 — orbits the center pole
+  const pivot1 = new THREE.Group();
+  pivot1.position.set(0, 0.3, D / 2 - 2.5);
+  const d1 = makeDancer(0xff44aa, 0);
+  d1.position.set(0.6, 0, 0);
+  pivot1.add(d1);
+  group.add(pivot1);
+
+  // Dancer 2 on second pole — opposite rotation phase
+  const pivot2 = new THREE.Group();
+  pivot2.position.set(-1.5, 0.3, D / 2 - 2);
+  pivot2.rotation.y = Math.PI; // start opposite
+  const d2 = makeDancer(0xffaadd, 1);
+  d2.position.set(0.5, 0, 0);
+  pivot2.add(d2);
+  group.add(pivot2);
 
   return {
+    dancers: [pivot1, pivot2],
     interactionZones: [
       { x: 0, z: D / 2 - 4, radius: 3.5, activityKeys: ['WATCH_SHOW', 'DRINK', 'SOCIALIZE'], label: 'Uminom at Manood' },
       { x: W / 2 - 2.2, z: 0, radius: 2.8, activityKeys: ['VIP_ROOM'], label: 'VIP Room' }
