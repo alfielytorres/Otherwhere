@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { BUILDINGS } from '../data/GameData.js';
 
-function stdMat(color, roughness = 0.8, metalness = 0) {
-  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+function stdMat(color) {
+  return new THREE.MeshLambertMaterial({ color });
 }
 
 function emissiveMat(color, intensity = 1.3) {
@@ -18,8 +18,8 @@ function emissiveMat(color, intensity = 1.3) {
 function createTreeInstances(scene, positions) {
   const dummy = new THREE.Object3D();
 
-  const trunkGeo = new THREE.CylinderGeometry(0.25, 0.4, 5, 7);
-  const trunkMat = stdMat(0x3a2a1a, 0.95);
+  const trunkGeo = new THREE.CylinderGeometry(0.25, 0.4, 5, 4);
+  const trunkMat = stdMat(0x3a2a1a);
   const trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, positions.length);
   trunkMesh.receiveShadow = true;
   positions.forEach(([x, z], i) => {
@@ -30,8 +30,8 @@ function createTreeInstances(scene, positions) {
   trunkMesh.instanceMatrix.needsUpdate = true;
   scene.add(trunkMesh);
 
-  const crownGeo = new THREE.SphereGeometry(2.6, 8, 8);
-  const crownMat = stdMat(0x1a3320, 0.9);
+  const crownGeo = new THREE.SphereGeometry(2.6, 5, 4);
+  const crownMat = stdMat(0x1a3320);
   const crownMesh = new THREE.InstancedMesh(crownGeo, crownMat, positions.length);
   positions.forEach(([x, z], i) => {
     dummy.position.set(x, 6, z);
@@ -46,8 +46,8 @@ function createTreeInstances(scene, positions) {
 function createLampInstances(scene, lampPositions) {
   const dummy = new THREE.Object3D();
 
-  const poleGeo = new THREE.CylinderGeometry(0.1, 0.12, 6, 6);
-  const poleMat = stdMat(0x222222, 0.7, 0.4);
+  const poleGeo = new THREE.CylinderGeometry(0.1, 0.12, 6, 4);
+  const poleMat = stdMat(0x222222);
   const poleMesh = new THREE.InstancedMesh(poleGeo, poleMat, lampPositions.length);
   poleMesh.receiveShadow = true;
   lampPositions.forEach(([x, z], i) => {
@@ -59,7 +59,7 @@ function createLampInstances(scene, lampPositions) {
   scene.add(poleMesh);
 
   // Sodium-orange bulbs (emissive)
-  const bulbGeo = new THREE.SphereGeometry(0.35, 8, 8);
+  const bulbGeo = new THREE.SphereGeometry(0.35, 5, 4);
   const bulbMat = emissiveMat(0xFF6600, 1.6);
   const bulbMesh = new THREE.InstancedMesh(bulbGeo, bulbMat, lampPositions.length);
   lampPositions.forEach(([x, z], i) => {
@@ -84,7 +84,7 @@ function createNeonSign(scene, bdata) {
   scene.add(sign);
 
   // Backing board
-  const board = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 1.8, 0.2), stdMat(0x111111, 0.9));
+  const board = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 1.8, 0.2), stdMat(0x111111));
   board.position.set(bdata.x, Math.min(bdata.height, 6) + 0.5, bdata.z + bdata.depth / 2 + 0.25);
   scene.add(board);
 
@@ -104,21 +104,21 @@ function createBuilding(scene, bdata) {
   // Outdoor "buildings" (alley, street food, court) get a minimal pad instead of a tower
   if (bdata.isOutdoor) {
     if (bdata.id === 'BASKETBALL') {
-      const court = new THREE.Mesh(new THREE.BoxGeometry(w - 2, 0.15, d - 2), stdMat(0x884422, 0.9));
+      const court = new THREE.Mesh(new THREE.BoxGeometry(w - 2, 0.15, d - 2), stdMat(0x884422));
       court.position.y = 0.1;
       group.add(court);
       for (const side of [-1, 1]) {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.5, 6), stdMat(0x555555, 0.7, 0.4));
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.5, 4), stdMat(0x555555));
         pole.position.set(side * (w / 2 - 1.5), 1.75, 0);
         group.add(pole);
-        const board = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 0.1), stdMat(0xcccccc, 0.3));
+        const board = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 0.1), stdMat(0xcccccc));
         board.position.set(side * (w / 2 - 1.5), 3.8, 0);
         group.add(board);
       }
     } else if (bdata.id === 'DARK_ALLEY') {
       // Narrow grimy alley walls + a flickering bulb + graffiti
       for (const side of [-1, 1]) {
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(0.4, height, d), stdMat(0x1a1a18, 0.95));
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(0.4, height, d), stdMat(0x1a1a18));
         wall.position.set(side * (w / 2), height / 2, 0);
         group.add(wall);
         // Graffiti tags
@@ -128,7 +128,7 @@ function createBuilding(scene, bdata) {
         graf.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
         group.add(graf);
       }
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), emissiveMat(0xffccaa, 1.2));
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 5, 4), emissiveMat(0xffccaa, 1.2));
       bulb.position.set(0, height - 0.5, 0);
       group.add(bulb);
       const aLight = new THREE.PointLight(0xffaa66, 0.6, 10);
@@ -136,7 +136,7 @@ function createBuilding(scene, bdata) {
       group.add(aLight);
     } else {
       // Street food stall: small cart with a grill
-      const cart = new THREE.Mesh(new THREE.BoxGeometry(w, 1.2, d), stdMat(0x4a2a1a, 0.8));
+      const cart = new THREE.Mesh(new THREE.BoxGeometry(w, 1.2, d), stdMat(0x4a2a1a));
       cart.position.y = 0.6;
       group.add(cart);
       const grill = new THREE.Mesh(new THREE.BoxGeometry(w * 0.8, 0.2, d * 0.6), emissiveMat(0xff4400, 0.8));
@@ -154,11 +154,11 @@ function createBuilding(scene, bdata) {
   // Body material: glass/metal for BGC, dark grungy for red-light
   let bodyMat;
   if (isRedLight) {
-    bodyMat = stdMat(bdata.color, 0.85, 0.05);
+    bodyMat = stdMat(bdata.color);
   } else if (['office', 'mall'].includes(bdata.buildingType)) {
     bodyMat = new THREE.MeshStandardMaterial({ color: bdata.color, roughness: 0.15, metalness: 0.6 });
   } else {
-    bodyMat = stdMat(bdata.color, 0.75, 0.15);
+    bodyMat = stdMat(bdata.color);
   }
   const body = new THREE.Mesh(new THREE.BoxGeometry(w, height, d), bodyMat);
   body.position.y = height / 2;
@@ -168,12 +168,12 @@ function createBuilding(scene, bdata) {
 
   // Roof
   if (['residential', 'church', 'market', 'store', 'spa'].includes(bdata.buildingType)) {
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.75, height * 0.5, 4), stdMat(bdata.roofColor, 0.9));
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.75, height * 0.5, 4), stdMat(bdata.roofColor));
     roof.position.y = height + height * 0.25;
     roof.rotation.y = Math.PI / 4;
     group.add(roof);
   } else {
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.5, d + 0.5), stdMat(bdata.roofColor, 0.85));
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.5, d + 0.5), stdMat(bdata.roofColor));
     roof.position.y = height + 0.25;
     group.add(roof);
   }
@@ -183,7 +183,7 @@ function createBuilding(scene, bdata) {
     const tower = new THREE.Mesh(new THREE.BoxGeometry(4, height * 0.8, 4), bodyMat.clone());
     tower.position.set(-w / 2 + 2, height * 0.9, 0);
     group.add(tower);
-    const steeple = new THREE.Mesh(new THREE.ConeGeometry(2.5, height * 0.7, 4), stdMat(bdata.roofColor, 0.85));
+    const steeple = new THREE.Mesh(new THREE.ConeGeometry(2.5, height * 0.7, 4), stdMat(bdata.roofColor));
     steeple.position.set(-w / 2 + 2, height * 1.7, 0);
     steeple.rotation.y = Math.PI / 4;
     group.add(steeple);
@@ -201,7 +201,7 @@ function createBuilding(scene, bdata) {
   }
 
   // Door
-  const door = new THREE.Mesh(new THREE.BoxGeometry(2, 2.5, 0.2), stdMat(0x0a0a0a, 0.6, 0.3));
+  const door = new THREE.Mesh(new THREE.BoxGeometry(2, 2.5, 0.2), stdMat(0x0a0a0a));
   door.position.set(0, 1.25, d / 2 + 0.11);
   group.add(door);
 
@@ -221,15 +221,15 @@ function createBuilding(scene, bdata) {
 
 function createJeepney(scene, x, z) {
   const group = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(3, 1.8, 6), stdMat(0xb03020, 0.7, 0.2));
+  const body = new THREE.Mesh(new THREE.BoxGeometry(3, 1.8, 6), stdMat(0xb03020));
   body.position.y = 1.1;
   group.add(body);
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.3, 5), stdMat(0xc08010, 0.6, 0.2));
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.3, 5), stdMat(0xc08010));
   roof.position.y = 2.15;
   group.add(roof);
   for (const sx of [-1.4, 1.4]) {
     for (const sz of [-2, 0, 2]) {
-      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.3, 10), stdMat(0x0a0a0a, 0.9));
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.3, 6), stdMat(0x0a0a0a));
       wheel.rotation.z = Math.PI / 2;
       wheel.position.set(sx, 0.4, sz);
       group.add(wheel);
@@ -237,7 +237,7 @@ function createJeepney(scene, x, z) {
   }
   // Headlights
   for (const sx of [-1, 1]) {
-    const hl = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), emissiveMat(0xffffcc, 1.5));
+    const hl = new THREE.Mesh(new THREE.SphereGeometry(0.18, 5, 4), emissiveMat(0xffffcc, 1.5));
     hl.position.set(sx, 1, 3.05);
     group.add(hl);
   }
@@ -246,72 +246,11 @@ function createJeepney(scene, x, z) {
   return group;
 }
 
-function createFountain(scene, x, z) {
-  const group = new THREE.Group();
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(4, 4.5, 0.8, 16), stdMat(0x555555, 0.6, 0.2));
-  base.position.y = 0.4;
-  group.add(base);
-  const waterMat = new THREE.MeshStandardMaterial({ color: 0x113355, transparent: true, opacity: 0.85, roughness: 0.05, metalness: 0.6 });
-  const water = new THREE.Mesh(new THREE.CylinderGeometry(2.8, 2.8, 0.1, 16), waterMat);
-  water.position.y = 1;
-  group.add(water);
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 3, 8), stdMat(0x444444, 0.6, 0.3));
-  pole.position.y = 2.5;
-  group.add(pole);
-  group.position.set(x, 0, z);
-  scene.add(group);
-  return group;
-}
-
-function createBench(scene, x, z, rotY = 0) {
-  const group = new THREE.Group();
-  const woodMat = stdMat(0x3a2a1a, 0.85);
-  const seat = new THREE.Mesh(new THREE.BoxGeometry(2, 0.15, 0.5), woodMat);
-  seat.position.y = 0.8;
-  group.add(seat);
-  for (const lx of [-0.7, 0.7]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.5), stdMat(0x222222, 0.7, 0.3));
-    leg.position.set(lx, 0.4, 0);
-    group.add(leg);
-  }
-  const back = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 0.1), woodMat);
-  back.position.set(0, 1.15, -0.2);
-  group.add(back);
-  group.position.set(x, 0, z);
-  group.rotation.y = rotY;
-  scene.add(group);
-  return group;
-}
-
 function createTrashBin(scene, x, z) {
-  const bin = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.35, 1, 8), stdMat(0x1a1a1a, 0.9));
+  const bin = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.35, 1, 4), stdMat(0x1a1a1a));
   bin.position.set(x, 0.5, z);
   bin.castShadow = true;
   scene.add(bin);
-}
-
-function createPuddle(scene, x, z, r = 2) {
-  const puddleMat = new THREE.MeshStandardMaterial({
-    color: 0x223344,
-    transparent: true,
-    opacity: 0.45,
-    roughness: 0.05,
-    metalness: 0.8
-  });
-  const puddle = new THREE.Mesh(new THREE.CircleGeometry(r, 16), puddleMat);
-  puddle.rotation.x = -Math.PI / 2;
-  puddle.position.set(x, 0.03, z);
-  scene.add(puddle);
-}
-
-function createGraffitiWall(scene, x, z, rotY, color) {
-  const graf = new THREE.Mesh(
-    new THREE.PlaneGeometry(5, 2),
-    new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color), emissiveIntensity: 0.4, side: THREE.DoubleSide })
-  );
-  graf.position.set(x, 1.5, z);
-  graf.rotation.y = rotY;
-  scene.add(graf);
 }
 
 export function generateWorld(scene) {
@@ -351,7 +290,7 @@ export function generateWorld(scene) {
   }
 
   // Faded yellow road lines
-  const lineMat = stdMat(0x999900, 0.6);
+  const lineMat = stdMat(0x999900);
   for (let pos = -160; pos <= 160; pos += 20) {
     const line = new THREE.Mesh(new THREE.PlaneGeometry(8, 0.3), lineMat);
     line.rotation.x = -Math.PI / 2;
@@ -371,9 +310,6 @@ export function generateWorld(scene) {
     createNeonSign(scene, bdata);
   }
 
-  // Fountain at center
-  createFountain(scene, 0, 0);
-
   // Sparse urban trees
   createTreeInstances(scene, [
     [-20, -20], [20, -20], [-50, -50], [50, -50], [-100, -100], [100, 100],
@@ -383,19 +319,13 @@ export function generateWorld(scene) {
 
   // Lamp posts along roads
   const lampPositions = [];
-  for (let pos = -150; pos <= 150; pos += 20) {
+  for (let pos = -150; pos <= 150; pos += 30) {
     lampPositions.push([pos, 6]);
     lampPositions.push([pos, -6]);
     lampPositions.push([6, pos]);
     lampPositions.push([-6, pos]);
   }
   createLampInstances(scene, lampPositions);
-
-  // Benches
-  createBench(scene, -15, 15, Math.PI / 4);
-  createBench(scene, 15, 15, -Math.PI / 4);
-  createBench(scene, -15, -15, -Math.PI / 4);
-  createBench(scene, 15, -15, Math.PI / 4);
 
   // Jeepney
   createJeepney(scene, 45, -85);
@@ -405,16 +335,6 @@ export function generateWorld(scene) {
   for (const [tx, tz] of [[-12, 88], [14, 92], [48, 90], [-43, 80], [-3, 105], [25, -12], [-25, 25], [72, -52]]) {
     createTrashBin(scene, tx, tz);
   }
-
-  // Wet street puddles
-  for (const [px, pz, pr] of [[8, 50, 2], [-10, 70, 1.5], [20, 95, 2.5], [-30, 90, 2], [0, 30, 1.8], [40, -20, 2], [-60, 20, 1.5], [5, 110, 2]]) {
-    createPuddle(scene, px, pz, pr);
-  }
-
-  // Graffiti walls around the red-light district
-  createGraffitiWall(scene, -10, 100, 0, 0xff2288);
-  createGraffitiWall(scene, 30, 100, 0, 0x22ddff);
-  createGraffitiWall(scene, -50, 88, Math.PI / 2, 0xffdd22);
 
   // Water plane (kept; far edge)
   const waterMat = new THREE.MeshStandardMaterial({ color: 0x0a1a2a, transparent: true, opacity: 0.85, roughness: 0.05, metalness: 0.7 });
