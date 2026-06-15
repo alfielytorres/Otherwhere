@@ -222,28 +222,36 @@ export function initActivityMenu(eventsInstance) {
 
   // ESC key to close
   window.addEventListener('keydown', (e) => {
+    // Capture ESC while the menu is open so it only closes the menu,
+    // not exit the whole building (the player stays inside).
     if (e.code === 'Escape' && isOpen) {
+      e.stopPropagation();
       closeMenu();
     }
-  });
+  }, true);
 
-  // Listen for enter_building event
-  eventsInstance.on('enter_building', (data) => {
-    openMenu(data.building, eventsInstance);
+  // Listen for zone activity requests (from interaction zones or outdoor buildings)
+  eventsInstance.on('show_zone_activities', (data) => {
+    openMenu(data.building, data.activityKeys, eventsInstance);
   });
 
   function closeMenu() {
     isOpen = false;
     overlay.classList.remove('open');
-    eventsInstance.emit('exit_building', { building: currentBuilding });
+    // Outdoor "buildings" have no interior — closing means leaving them.
+    if (currentBuilding && currentBuilding.isOutdoor) {
+      eventsInstance.emit('exit_building', { building: currentBuilding });
+    }
     currentBuilding = null;
   }
 }
 
-function openMenu(building, eventsInstance) {
+function openMenu(building, activityKeys, eventsInstance) {
   if (!overlay) return;
   isOpen = true;
   currentBuilding = building;
+
+  const keys = activityKeys || (building && building.activities) || [];
 
   const bNameEl = document.getElementById('activity-building-name');
   const bNameEnEl = document.getElementById('activity-building-name-en');
@@ -255,7 +263,7 @@ function openMenu(building, eventsInstance) {
   if (grid) {
     grid.innerHTML = '';
 
-    for (const actKey of building.activities) {
+    for (const actKey of keys) {
       const actData = ACTIVITIES[actKey];
       if (!actData) continue;
 
@@ -309,7 +317,11 @@ function openMenu(building, eventsInstance) {
         });
         overlay.classList.remove('open');
         isOpen = false;
-        eventsInstance.emit('exit_building', { building });
+        // Outdoor spots have no interior, so picking an activity leaves them.
+        // Indoor zones keep the player inside (exit only via ESC).
+        if (building && building.isOutdoor) {
+          eventsInstance.emit('exit_building', { building });
+        }
         currentBuilding = null;
       });
 

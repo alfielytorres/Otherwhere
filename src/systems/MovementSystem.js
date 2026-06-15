@@ -28,7 +28,8 @@ export class MovementSystem extends System {
       return;
     }
 
-    const spd = player.speed;
+    // Slower, more careful movement while inside a building
+    const spd = player.isInsideBuilding ? player.speed * 0.6 : player.speed;
     let dx = 0;
     let dz = 0;
 
@@ -49,43 +50,63 @@ export class MovementSystem extends System {
       dz /= len;
     }
 
-    velocity.vx = dx * spd;
-    velocity.vz = dz * spd;
+    // Rotate movement to be relative to the camera (first-person yaw or orbit yaw)
+    let moveX = dx;
+    let moveZ = dz;
+
+    if (dx !== 0 || dz !== 0) {
+      const yaw = world.fpMode ? (world.fpYaw || 0) : (world.cameraYaw || 0);
+      moveX = dx * Math.cos(yaw) + dz * Math.sin(yaw);
+      moveZ = dz * Math.cos(yaw) - dx * Math.sin(yaw);
+    }
+
+    velocity.vx = moveX * spd;
+    velocity.vz = moveZ * spd;
 
     // Apply velocity
     const newX = transform.x + velocity.vx * delta;
     const newZ = transform.z + velocity.vz * delta;
+
+    // Inside a building: clamp to interior room bounds, no building collision
+    if (player.isInsideBuilding && player.interiorBounds) {
+      const b = player.interiorBounds;
+      transform.x = Math.max(b.minX, Math.min(b.maxX, newX));
+      transform.z = Math.max(b.minZ, Math.min(b.maxZ, newZ));
+      this._updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta);
+      return;
+    }
 
     // World boundary
     const BOUND = 145;
     const clampedX = Math.max(-BOUND, Math.min(BOUND, newX));
     const clampedZ = Math.max(-BOUND, Math.min(BOUND, newZ));
 
-    // Building collision (AABB)
+    // Building collision - skip when inside a building
     const playerHalfW = 0.4;
     const playerHalfD = 0.4;
 
     let finalX = clampedX;
     let finalZ = clampedZ;
 
-    const buildings = world.query(BuildingComp);
-    for (const bEntity of buildings) {
-      const b = bEntity.get(BuildingComp);
-      const bHalfW = b.width / 2 + playerHalfW;
-      const bHalfD = b.depth / 2 + playerHalfD;
+    if (!player.isInsideBuilding) {
+      const buildings = world.query(BuildingComp);
+      for (const bEntity of buildings) {
+        const b = bEntity.get(BuildingComp);
+        const bHalfW = b.width / 2 + playerHalfW;
+        const bHalfD = b.depth / 2 + playerHalfD;
 
-      const dx2 = finalX - b.x;
-      const dz2 = finalZ - b.z;
+        const dx2 = finalX - b.x;
+        const dz2 = finalZ - b.z;
 
-      if (Math.abs(dx2) < bHalfW && Math.abs(dz2) < bHalfD) {
-        // Push out on shortest axis
-        const overlapX = bHalfW - Math.abs(dx2);
-        const overlapZ = bHalfD - Math.abs(dz2);
+        if (Math.abs(dx2) < bHalfW && Math.abs(dz2) < bHalfD) {
+          const overlapX = bHalfW - Math.abs(dx2);
+          const overlapZ = bHalfD - Math.abs(dz2);
 
-        if (overlapX < overlapZ) {
-          finalX = b.x + (dx2 > 0 ? bHalfW : -bHalfW);
-        } else {
-          finalZ = b.z + (dz2 > 0 ? bHalfD : -bHalfD);
+          if (overlapX < overlapZ) {
+            finalX = b.x + (dx2 > 0 ? bHalfW : -bHalfW);
+          } else {
+            finalZ = b.z + (dz2 > 0 ? bHalfD : -bHalfD);
+          }
         }
       }
     }
@@ -93,19 +114,24 @@ export class MovementSystem extends System {
     transform.x = finalX;
     transform.z = finalZ;
 
-    // Update mesh
-    if (meshComp.mesh) {
+    this._updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta);
+  }
+
+  _updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta) {
+    if (!meshComp.mesh) return;
+
+    // Update mesh (only animate when visible in third/orbit person)
+    if (meshComp.mesh.visible) {
       meshComp.mesh.position.set(transform.x, transform.y, transform.z);
 
       // Rotation
-      if (dx !== 0 || dz !== 0) {
-        this.targetRotY = Math.atan2(dx, dz);
+      if (moveX !== 0 || moveZ !== 0) {
+        this.targetRotY = Math.atan2(moveX, moveZ);
       }
 
       // Lerp rotation
       const currentRotY = meshComp.mesh.rotation.y;
       let diff = this.targetRotY - currentRotY;
-      // Wrap diff to [-PI, PI]
       while (diff > Math.PI) diff -= 2 * Math.PI;
       while (diff < -Math.PI) diff += 2 * Math.PI;
       meshComp.mesh.rotation.y = currentRotY + diff * Math.min(1, delta * 12);
@@ -117,6 +143,9 @@ export class MovementSystem extends System {
       } else {
         meshComp.mesh.position.y = transform.y;
       }
+    } else {
+      // Keep transform in sync even when mesh hidden (first-person)
+      meshComp.mesh.position.set(transform.x, transform.y, transform.z);
     }
   }
 

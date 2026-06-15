@@ -307,15 +307,40 @@ export function initHUD(eventsInstance) {
   notificationEl.id = 'hud-notification';
   document.body.appendChild(notificationEl);
 
+  // First-person exit indicator
+  const fpIndicator = document.createElement('div');
+  fpIndicator.id = 'hud-fp-indicator';
+  fpIndicator.textContent = '[ESC] Lumabas  •  [E] Makipag-ugnayan';
+  fpIndicator.style.cssText = `
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.7); border: 1px solid rgba(252,209,22,0.5);
+    border-radius: 8px; padding: 8px 16px; color: #FCD116;
+    font-family: 'Poppins', sans-serif; font-size: 12px;
+    display: none; pointer-events: none; z-index: 600; backdrop-filter: blur(4px);
+  `;
+  document.body.appendChild(fpIndicator);
+
   // Event listeners
   eventsInstance.on('interaction_prompt', (data) => {
     if (interactionPromptEl) {
-      if (data.show && data.building) {
+      if (data.show) {
         interactionPromptEl.style.display = 'block';
-        interactionPromptEl.textContent = `[E] Pumasok sa ${data.building.name}`;
+        // New label format from InteractionSystem; fall back to building name.
+        interactionPromptEl.textContent = data.label
+          || (data.building ? `[E] Pumasok sa ${data.building.name}` : '[E]');
       } else {
         interactionPromptEl.style.display = 'none';
       }
+    }
+  });
+
+  eventsInstance.on('camera_mode_changed', (data) => {
+    if (fpIndicator) {
+      fpIndicator.style.display = data.mode === 'firstperson' ? 'block' : 'none';
+    }
+    // Hide the entry prompt when switching into first-person.
+    if (data.mode === 'firstperson' && interactionPromptEl) {
+      interactionPromptEl.style.display = 'none';
     }
   });
 

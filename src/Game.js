@@ -15,6 +15,7 @@ import { NPCSystem } from './systems/NPCSystem.js';
 import { InteractionSystem } from './systems/InteractionSystem.js';
 import { initHUD, updateHUD } from './ui/HUD.js';
 import { initActivityMenu } from './ui/ActivityMenu.js';
+import { createInteriors } from './world/BuildingInteriors.js';
 import { BUILDINGS, NPC_NAMES, NPC_DIALOGUES, ACTIVITIES } from './data/GameData.js';
 
 export class Game {
@@ -69,14 +70,15 @@ export class Game {
 
   _initScene() {
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.Fog(0x87CEEB, 120, 320);
-    this.scene.background = new THREE.Color(0x87CEEB);
+    // Manila smog / grungy night atmosphere
+    this.scene.fog = new THREE.FogExp2(0x0a0a12, 0.007);
+    this.scene.background = new THREE.Color(0x0a0a12);
 
     this.camera = new THREE.PerspectiveCamera(
       60,
       window.innerWidth / window.innerHeight,
       0.1,
-      800
+      3000
     );
     this.camera.position.set(0, 16, 22);
     this.camera.lookAt(0, 0, 0);
@@ -144,6 +146,8 @@ export class Game {
         new BuildingComp(bdata)
       );
     }
+    // Build detailed 3D interiors placed far away at world X >= INTERIOR_BASE_X
+    this.interiors = createInteriors(this.scene, BUILDINGS);
   }
 
   _initSystems() {
@@ -152,7 +156,10 @@ export class Game {
     const needsSystem = new NeedsSystem();
     this.timeSystem = new TimeSystem(this.scene, this.ambientLight, this.sunLight);
     const npcSystem = new NPCSystem();
-    const interactionSystem = new InteractionSystem();
+    // Start at 22:00 for the grungy nighttime aesthetic
+    this.timeSystem.gameHours = 22;
+    this.timeSystem._updateLighting();
+    const interactionSystem = new InteractionSystem(this.interiors);
 
     this.ecsWorld
       .addSystem(movementSystem)
@@ -171,14 +178,81 @@ export class Game {
   _initEvents() {
     events.on('enter_building', (data) => {
       const player = this.playerEntity.get(PlayerComp);
+      const transform = this.playerEntity.get(TransformComp);
+      const meshComp = this.playerEntity.get(MeshComp);
+
       player.isInsideBuilding = true;
       player.currentBuilding = data.building;
+
+      // For outdoor buildings (alley, street food), just open the activity menu directly
+      if (data.building.isOutdoor) {
+        events.emit('show_zone_activities', {
+          activityKeys: data.building.activities,
+          building: data.building
+        });
+        return;
+      }
+
+      // Save exterior position
+      player.exteriorX = transform.x;
+      player.exteriorZ = transform.z;
+
+      const interior = this.interiors.get(data.building.id);
+      if (interior) {
+        // Teleport player to interior entry point
+        transform.x = interior.entryPoint.x;
+        transform.z = interior.entryPoint.z;
+
+        if (meshComp && meshComp.mesh) {
+          meshComp.mesh.position.set(transform.x, transform.y, transform.z);
+          meshComp.mesh.visible = false;
+        }
+
+        // Set interior bounds for movement clamping
+        player.interiorBounds = interior.bounds;
+
+        // Disable smog fog so the interior is clearly visible
+        this._savedFog = this.scene.fog;
+        this.scene.fog = null;
+
+        // Switch to first-person, facing into the room (north / -Z => yaw PI)
+        events.emit('enter_firstperson', { facingYaw: Math.PI });
+      } else {
+        // No interior available — fall back to opening menu directly
+        events.emit('show_zone_activities', {
+          activityKeys: data.building.activities,
+          building: data.building
+        });
+      }
     });
 
     events.on('exit_building', () => {
       const player = this.playerEntity.get(PlayerComp);
+      const transform = this.playerEntity.get(TransformComp);
+      const meshComp = this.playerEntity.get(MeshComp);
+
+      if (!player.isInsideBuilding) return;
+
+      const wasOutdoor = player.currentBuilding && player.currentBuilding.isOutdoor;
       player.isInsideBuilding = false;
       player.currentBuilding = null;
+      player.interiorBounds = null;
+
+      if (!wasOutdoor) {
+        // Restore exterior position
+        transform.x = player.exteriorX;
+        transform.z = player.exteriorZ;
+        if (meshComp && meshComp.mesh) {
+          meshComp.mesh.position.set(transform.x, transform.y, transform.z);
+          meshComp.mesh.visible = true;
+        }
+        // Restore smog fog
+        if (this._savedFog) {
+          this.scene.fog = this._savedFog;
+          this._savedFog = null;
+        }
+        events.emit('exit_firstperson');
+      }
     });
 
     events.on('start_activity', (data) => {

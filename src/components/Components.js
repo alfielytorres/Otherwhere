@@ -36,6 +36,9 @@ export class PlayerComp {
     this.speed = 15;
     this.isInsideBuilding = false;
     this.currentBuilding = null;
+    this.exteriorX = 0;
+    this.exteriorZ = 10;
+    this.interiorBounds = null; // { minX, maxX, minZ, maxZ }
   }
 }
 
@@ -79,5 +82,9 @@ export class BuildingComp {
     this.interactionRadius = data.interactionRadius || 12;
     this.color = data.color || 0xffffff;
     this.roofColor = data.roofColor || 0xff0000;
+    this.height = data.height || 8;
+    this.isOutdoor = data.isOutdoor || false;
+    this.district = data.district || null;
+    this.neonSign = data.neonSign || null;
   }
 }
