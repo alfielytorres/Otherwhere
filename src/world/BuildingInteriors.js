@@ -989,6 +989,7 @@ export function createInteriors(scene, buildings) {
 
     const group = new THREE.Group();
     group.position.set(offsetX, 0, 0);
+    group.visible = false; // hidden until player enters
 
     const result = spec.builder(group, spec.W, spec.H, spec.D);
     scene.add(group);

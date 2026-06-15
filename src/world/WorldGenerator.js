@@ -189,21 +189,15 @@ function createBuilding(scene, bdata) {
     group.add(steeple);
   }
 
-  // Lit windows (warm at night, some off)
-  const winRows = Math.max(1, Math.floor(height / 4));
-  const winCols = Math.max(1, Math.floor(w / 4));
+  // Lit windows — one emissive strip per floor (avoids hundreds of individual meshes)
+  const winRows = Math.min(3, Math.max(1, Math.floor(height / 5)));
+  const winColor = isRedLight ? 0xff5588 : 0xffcc66;
   for (let row = 0; row < winRows; row++) {
-    for (let col = 0; col < winCols; col++) {
-      const lit = Math.random() > 0.45;
-      const winMat = lit
-        ? emissiveMat(isRedLight ? 0xff5588 : 0xffcc66, 0.9)
-        : new THREE.MeshStandardMaterial({ color: 0x111522, roughness: 0.2, metalness: 0.4 });
-      const win = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 0.2), winMat);
-      const wX = -w / 2 + (col + 0.8) * (w / winCols);
-      const wY = (row + 1) * (height / (winRows + 1));
-      win.position.set(wX, wY, d / 2 + 0.1);
-      group.add(win);
-    }
+    const winMat = emissiveMat(winColor, 0.7);
+    const winStrip = new THREE.Mesh(new THREE.BoxGeometry(w * 0.75, 0.6, 0.15), winMat);
+    const wY = (row + 1) * (height / (winRows + 1));
+    winStrip.position.set(0, wY, d / 2 + 0.08);
+    group.add(winStrip);
   }
 
   // Door
@@ -214,11 +208,12 @@ function createBuilding(scene, bdata) {
   group.position.set(bdata.x, 0, bdata.z);
   scene.add(group);
 
-  // Extra red glow for red-light district buildings
+  // Extra red glow for red-light district buildings (no PointLight to save draw calls)
   if (isRedLight) {
-    const redGlow = new THREE.PointLight(0xff0044, 1.0, 24);
-    redGlow.position.set(bdata.x, 4, bdata.z + d / 2 + 3);
-    scene.add(redGlow);
+    const signGlow = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, 0.4, 0.1),
+      emissiveMat(0xff0044, 2.5));
+    signGlow.position.set(0, height + 0.5, d / 2 + 0.05);
+    group.add(signGlow);
   }
 
   return { group, buildingData: bdata };
@@ -429,25 +424,27 @@ export function generateWorld(scene) {
   scene.add(water);
 
   // ---- Night lighting ----
-  const ambientLight = new THREE.AmbientLight(0x0a0a1a, 0.3);
+  // Bright enough to navigate but still moody
+  const ambientLight = new THREE.AmbientLight(0x1a2d45, 0.9);
   scene.add(ambientLight);
 
-  // Moonlight from a low angle
-  const sunLight = new THREE.DirectionalLight(0x334466, 0.4);
-  sunLight.position.set(60, 50, -40);
-  sunLight.castShadow = true;
-  sunLight.shadow.mapSize.width = 1024;
-  sunLight.shadow.mapSize.height = 1024;
-  sunLight.shadow.camera.near = 0.5;
-  sunLight.shadow.camera.far = 400;
-  sunLight.shadow.camera.left = -150;
-  sunLight.shadow.camera.right = 150;
-  sunLight.shadow.camera.top = 150;
-  sunLight.shadow.camera.bottom = -150;
+  // Moonlight — directional, no shadows (huge perf win)
+  const sunLight = new THREE.DirectionalLight(0x5577bb, 1.2);
+  sunLight.position.set(60, 80, -40);
+  sunLight.castShadow = false;
   scene.add(sunLight);
 
-  const hemiLight = new THREE.HemisphereLight(0x223355, 0x0a0a0a, 0.25);
+  // Warm hemisphere: sky cool blue, ground warm orange-tinted asphalt
+  const hemiLight = new THREE.HemisphereLight(0x223355, 0x1a1208, 0.6);
   scene.add(hemiLight);
+
+  // Sodium street lamp pools — 4 PointLights at main intersections
+  const streetLampPositions = [[0, 0], [60, 0], [-60, 0], [0, -60]];
+  for (const [lx, lz] of streetLampPositions) {
+    const l = new THREE.PointLight(0xff8822, 1.2, 60);
+    l.position.set(lx, 6, lz);
+    scene.add(l);
+  }
 
   return { water, buildingMeshObjects, ambientLight, sunLight };
 }

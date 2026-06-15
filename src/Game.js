@@ -60,19 +60,18 @@ export class Game {
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = false;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.toneMappingExposure = 1.4;
 
     window.addEventListener('resize', () => this._onResize());
   }
 
   _initScene() {
     this.scene = new THREE.Scene();
-    // Manila smog / grungy night atmosphere
-    this.scene.fog = new THREE.FogExp2(0x0a0a12, 0.007);
-    this.scene.background = new THREE.Color(0x0a0a12);
+    // Manila night — lighter fog so you can see buildings at distance
+    this.scene.fog = new THREE.FogExp2(0x0d1a2e, 0.004);
+    this.scene.background = new THREE.Color(0x0d1a2e);
 
     this.camera = new THREE.PerspectiveCamera(
       60,
@@ -116,7 +115,7 @@ export class Game {
       [100, -20], [-100, 20], [0, -70], [60, 30], [-30, 100]
     ];
 
-    for (let i = 0; i < Math.min(NPC_NAMES.length, 15); i++) {
+    for (let i = 0; i < Math.min(NPC_NAMES.length, 8); i++) {
       const name = NPC_NAMES[i];
       const pos = npcStartPositions[i] || [
         (Math.random() - 0.5) * 200,
@@ -199,6 +198,8 @@ export class Game {
 
       const interior = this.interiors.get(data.building.id);
       if (interior) {
+        interior.group.visible = true; // show this interior's geometry
+
         // Teleport player to interior entry point
         transform.x = interior.entryPoint.x;
         transform.z = interior.entryPoint.z;
@@ -211,9 +212,10 @@ export class Game {
         // Set interior bounds for movement clamping
         player.interiorBounds = interior.bounds;
 
-        // Disable smog fog so the interior is clearly visible
+        // Disable fog so the interior is clearly visible
         this._savedFog = this.scene.fog;
         this.scene.fog = null;
+        this._activeInterior = interior;
 
         // Switch to first-person, facing into the room (north / -Z => yaw PI)
         events.emit('enter_firstperson', { facingYaw: Math.PI });
@@ -239,6 +241,11 @@ export class Game {
       player.interiorBounds = null;
 
       if (!wasOutdoor) {
+        // Hide interior geometry
+        if (this._activeInterior) {
+          this._activeInterior.group.visible = false;
+          this._activeInterior = null;
+        }
         // Restore exterior position
         transform.x = player.exteriorX;
         transform.z = player.exteriorZ;
@@ -246,10 +253,10 @@ export class Game {
           meshComp.mesh.position.set(transform.x, transform.y, transform.z);
           meshComp.mesh.visible = true;
         }
-        // Restore smog fog
-        if (this._savedFog) {
+        // Restore fog
+        if (this._savedFog !== undefined) {
           this.scene.fog = this._savedFog;
-          this._savedFog = null;
+          this._savedFog = undefined;
         }
         events.emit('exit_firstperson');
       }

@@ -99,18 +99,18 @@ export class TimeSystem extends System {
       if (this.scene) this.scene.background = new THREE.Color(0xFF8844);
       if (this.scene && this.scene.fog) this.scene.fog.color.setHex(0xFF8844);
     } else {
-      // Night - dark blue
+      // Night - dark navy but bright enough to see buildings and navigate
       if (this.ambientLight) {
-        this.ambientLight.color.setHex(0x223355);
-        this.ambientLight.intensity = 0.3;
+        this.ambientLight.color.setHex(0x1a2d45);
+        this.ambientLight.intensity = 0.9;
       }
       if (this.sunLight) {
-        this.sunLight.color.setHex(0x334488);
-        this.sunLight.intensity = 0.1;
-        this.sunLight.position.set(50, 100, 50);
+        this.sunLight.color.setHex(0x5577bb);
+        this.sunLight.intensity = 1.2;
+        this.sunLight.position.set(60, 80, -40);
       }
-      if (this.scene) this.scene.background = new THREE.Color(0x0A0A2E);
-      if (this.scene && this.scene.fog) this.scene.fog.color.setHex(0x0A0A2E);
+      if (this.scene) this.scene.background = new THREE.Color(0x0d1a2e);
+      if (this.scene && this.scene.fog) this.scene.fog.color.setHex(0x0d1a2e);
     }
   }
 

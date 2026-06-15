@@ -19,21 +19,21 @@ function buildCharacter(skinColor, shirtColor, pantsColor, isPlayer = false) {
   const SHOE = mat(0x1A1A1A, 0.7, 0.1);
 
   // Head
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), SKIN.clone());
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), SKIN.clone());
   head.position.y = 1.63;
   head.castShadow = isPlayer;
   group.add(head);
 
   // Hair (top half-sphere)
   const hair = new THREE.Mesh(
-    new THREE.SphereGeometry(0.135, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.5),
+    new THREE.SphereGeometry(0.135, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.5),
     HAIR
   );
   hair.position.y = 1.70;
   group.add(hair);
 
   // Eyes
-  const eyeGeo = new THREE.SphereGeometry(0.022, 8, 8);
+  const eyeGeo = new THREE.SphereGeometry(0.022, 5, 5);
   const leftEye = new THREE.Mesh(eyeGeo, EYE);
   leftEye.position.set(-0.05, 1.645, 0.115);
   group.add(leftEye);
