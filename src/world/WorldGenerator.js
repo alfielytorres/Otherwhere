@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { BUILDINGS } from '../data/GameData.js';
 
-function stdMat(color) {
-  return new THREE.MeshLambertMaterial({ color });
+function stdMat(color, roughness = 0.75, metalness = 0) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
 }
 
 function emissiveMat(color, intensity = 1.3) {
@@ -253,15 +253,85 @@ function createTrashBin(scene, x, z) {
   scene.add(bin);
 }
 
+function createGroundTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 8000; i++) {
+    const v = Math.floor(Math.random() * 12 + 22);
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(Math.random() * size, Math.random() * size, 1 + Math.random(), 1 + Math.random());
+  }
+  // subtle tile seams
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= size; i += 64) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(60, 60);
+  return tex;
+}
+
+function createStarsAndMoons(scene) {
+  // Star field
+  const starCount = 2000;
+  const positions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 0.75);
+    const r = 900;
+    positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = Math.abs(r * Math.cos(phi)) + 50;
+    positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0xffffff, size: 2.5, sizeAttenuation: false, transparent: true, opacity: 0.9
+  }));
+  scene.add(stars);
+
+  // Moon 1 (larger, closer)
+  const moonMat1 = new THREE.MeshStandardMaterial({
+    color: 0xfff9c4, emissive: new THREE.Color(0xffd54f), emissiveIntensity: 0.45, roughness: 0.85
+  });
+  const moon1 = new THREE.Mesh(new THREE.SphereGeometry(18, 16, 12), moonMat1);
+  moon1.position.set(280, 220, -600);
+  scene.add(moon1);
+  const mLight1 = new THREE.PointLight(0xfff5d0, 0.6, 2500);
+  mLight1.position.copy(moon1.position);
+  scene.add(mLight1);
+
+  // Moon 2 (smaller, dimmer)
+  const moonMat2 = new THREE.MeshStandardMaterial({
+    color: 0xffe9a0, emissive: new THREE.Color(0xffcc44), emissiveIntensity: 0.3, roughness: 0.9
+  });
+  const moon2 = new THREE.Mesh(new THREE.SphereGeometry(11, 14, 10), moonMat2);
+  moon2.position.set(180, 320, -700);
+  scene.add(moon2);
+  const mLight2 = new THREE.PointLight(0xfff0c0, 0.35, 2000);
+  mLight2.position.copy(moon2.position);
+  scene.add(mLight2);
+}
+
 export function generateWorld(scene) {
-  // Wet dark asphalt ground
-  const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.3, metalness: 0.4 });
+  // Ground with canvas asphalt texture
+  const groundTex = createGroundTexture();
+  const groundMat = new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.32, metalness: 0.38 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Red-light district floor tint (z ~90-110)
+  // Red-light district floor tint
   const rlZone = new THREE.Mesh(new THREE.PlaneGeometry(160, 60),
     new THREE.MeshStandardMaterial({ color: 0x2a0a14, roughness: 0.25, metalness: 0.4 }));
   rlZone.rotation.x = -Math.PI / 2;
@@ -269,37 +339,43 @@ export function generateWorld(scene) {
   scene.add(rlZone);
 
   // Roads
-  const roadMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.25, metalness: 0.5 });
+  const roadMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.22, metalness: 0.52 });
   const hRoad = new THREE.Mesh(new THREE.PlaneGeometry(400, 10), roadMat);
-  hRoad.rotation.x = -Math.PI / 2;
-  hRoad.position.set(0, 0.02, 0);
-  scene.add(hRoad);
+  hRoad.rotation.x = -Math.PI / 2; hRoad.position.set(0, 0.02, 0); scene.add(hRoad);
   const vRoad = new THREE.Mesh(new THREE.PlaneGeometry(10, 400), roadMat);
-  vRoad.rotation.x = -Math.PI / 2;
-  vRoad.position.set(0, 0.02, 0);
-  scene.add(vRoad);
+  vRoad.rotation.x = -Math.PI / 2; vRoad.position.set(0, 0.02, 0); scene.add(vRoad);
   for (const pos of [-60, -30, 30, 60, 90]) {
     const sr1 = new THREE.Mesh(new THREE.PlaneGeometry(400, 6), roadMat);
-    sr1.rotation.x = -Math.PI / 2;
-    sr1.position.set(0, 0.015, pos);
-    scene.add(sr1);
+    sr1.rotation.x = -Math.PI / 2; sr1.position.set(0, 0.015, pos); scene.add(sr1);
     const sr2 = new THREE.Mesh(new THREE.PlaneGeometry(6, 400), roadMat);
-    sr2.rotation.x = -Math.PI / 2;
-    sr2.position.set(pos, 0.015, 0);
-    scene.add(sr2);
+    sr2.rotation.x = -Math.PI / 2; sr2.position.set(pos, 0.015, 0); scene.add(sr2);
   }
 
-  // Faded yellow road lines
-  const lineMat = stdMat(0x999900);
+  // Sidewalks alongside main roads (light gray concrete)
+  const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x484848, roughness: 0.88, metalness: 0.02 });
+  for (const offset of [-7, 7]) {
+    const sw1 = new THREE.Mesh(new THREE.PlaneGeometry(400, 3), sidewalkMat);
+    sw1.rotation.x = -Math.PI / 2; sw1.position.set(0, 0.012, offset); scene.add(sw1);
+    const sw2 = new THREE.Mesh(new THREE.PlaneGeometry(3, 400), sidewalkMat);
+    sw2.rotation.x = -Math.PI / 2; sw2.position.set(offset, 0.012, 0); scene.add(sw2);
+  }
+
+  // Faded yellow road centre lines
+  const lineMat = stdMat(0x888800, 0.6);
   for (let pos = -160; pos <= 160; pos += 20) {
     const line = new THREE.Mesh(new THREE.PlaneGeometry(8, 0.3), lineMat);
-    line.rotation.x = -Math.PI / 2;
-    line.position.set(pos, 0.025, 0);
-    scene.add(line);
+    line.rotation.x = -Math.PI / 2; line.position.set(pos, 0.025, 0); scene.add(line);
     const line2 = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 8), lineMat);
-    line2.rotation.x = -Math.PI / 2;
-    line2.position.set(0, 0.025, pos);
-    scene.add(line2);
+    line2.rotation.x = -Math.PI / 2; line2.position.set(0, 0.025, pos); scene.add(line2);
+  }
+
+  // Crosswalk stripes at main intersection
+  const cwMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, opacity: 0.55, transparent: true });
+  for (let i = -3; i <= 3; i += 1.5) {
+    const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 8), cwMat);
+    stripe.rotation.x = -Math.PI / 2; stripe.position.set(i, 0.03, 14); scene.add(stripe);
+    const stripe2 = new THREE.Mesh(new THREE.PlaneGeometry(8, 0.6), cwMat);
+    stripe2.rotation.x = -Math.PI / 2; stripe2.position.set(14, 0.03, i); scene.add(stripe2);
   }
 
   // Buildings + neon signs
@@ -310,62 +386,64 @@ export function generateWorld(scene) {
     createNeonSign(scene, bdata);
   }
 
-  // Sparse urban trees
+  // Trees
   createTreeInstances(scene, [
     [-20, -20], [20, -20], [-50, -50], [50, -50], [-100, -100], [100, 100],
     [-30, 40], [40, 30], [-90, 10], [90, -10], [10, -50], [-40, -90],
     [-110, 30], [110, -30], [60, -40], [-60, 40]
   ]);
 
-  // Lamp posts along roads
+  // Lamp posts
   const lampPositions = [];
   for (let pos = -150; pos <= 150; pos += 30) {
-    lampPositions.push([pos, 6]);
-    lampPositions.push([pos, -6]);
-    lampPositions.push([6, pos]);
-    lampPositions.push([-6, pos]);
+    lampPositions.push([pos, 6]); lampPositions.push([pos, -6]);
+    lampPositions.push([6, pos]); lampPositions.push([-6, pos]);
   }
   createLampInstances(scene, lampPositions);
 
-  // Jeepney
+  // Jeepneys
   createJeepney(scene, 45, -85);
   createJeepney(scene, -40, 80);
 
-  // Grungy props: trash bins
+  // Trash bins
   for (const [tx, tz] of [[-12, 88], [14, 92], [48, 90], [-43, 80], [-3, 105], [25, -12], [-25, 25], [72, -52]]) {
     createTrashBin(scene, tx, tz);
   }
 
-  // Water plane (kept; far edge)
+  // Water
   const waterMat = new THREE.MeshStandardMaterial({ color: 0x0a1a2a, transparent: true, opacity: 0.85, roughness: 0.05, metalness: 0.7 });
   const water = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), waterMat);
   water.rotation.x = -Math.PI / 2;
   water.position.set(0, 0.15, 140);
   scene.add(water);
 
-  // ---- Night lighting ----
-  // Bright enough to navigate but still moody
+  // Stars and two moons
+  createStarsAndMoons(scene);
+
+  // ---- Lighting ----
   const ambientLight = new THREE.AmbientLight(0x1a2d45, 0.9);
   scene.add(ambientLight);
 
-  // Moonlight — directional, no shadows (huge perf win)
   const sunLight = new THREE.DirectionalLight(0x5577bb, 1.2);
   sunLight.position.set(60, 80, -40);
-  sunLight.castShadow = false;
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.width = 1024;
+  sunLight.shadow.mapSize.height = 1024;
+  sunLight.shadow.camera.near = 1;
+  sunLight.shadow.camera.far = 500;
+  sunLight.shadow.camera.left = -160;
+  sunLight.shadow.camera.right = 160;
+  sunLight.shadow.camera.top = 160;
+  sunLight.shadow.camera.bottom = -160;
+  sunLight.shadow.bias = -0.001;
   scene.add(sunLight);
 
-  // Warm hemisphere: sky cool blue, ground warm orange-tinted asphalt
   const hemiLight = new THREE.HemisphereLight(0x223355, 0x1a1208, 0.6);
   scene.add(hemiLight);
 
-  // Sodium streetlight pools — along every road at 40-unit intervals
-  // Keep total under 12 to stay GPU-friendly
   const streetLightSpots = [
-    // Main N-S road
     [6, -120], [6, -80], [6, -40], [6, 0], [6, 40], [6, 80],
-    // Main E-W road
     [-80, -6], [-40, -6], [0, -6], [40, -6], [80, -6],
-    // Red-light district extra glow
     [0, 95]
   ];
   for (const [lx, lz] of streetLightSpots) {
@@ -374,7 +452,6 @@ export function generateWorld(scene) {
     scene.add(l);
   }
 
-  // Building façade lights — each building's front gets a warm wash
   for (const bdata of BUILDINGS) {
     if (bdata.isOutdoor) continue;
     const facadeLight = new THREE.PointLight(0xffcc88, 1.5, 20);

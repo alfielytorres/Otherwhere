@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { World } from './core/ECS.js';
 import { events } from './core/EventBus.js';
 import {
@@ -43,6 +47,7 @@ export class Game {
     this._initSystems();
     this._initUI();
     this._initEvents();
+    this._initPostProcessing();
 
     // Hide loading screen
     setTimeout(() => {
@@ -61,7 +66,8 @@ export class Game {
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    this.renderer.shadowMap.enabled = false;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.8;
 
@@ -305,6 +311,19 @@ export class Game {
     });
   }
 
+  _initPostProcessing() {
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.8,   // strength
+      0.65,  // radius
+      0.12   // threshold — low so neons and stars glow
+    );
+    this.composer.addPass(bloom);
+    this.composer.addPass(new OutputPass());
+  }
+
   _showQuickNotif(msg) {
     let notif = document.getElementById('hud-notification');
     if (!notif) return;
@@ -355,7 +374,7 @@ export class Game {
     }
 
     // Render
-    this.renderer.render(this.scene, this.camera);
+    this.composer.render();
 
     requestAnimationFrame((t) => this._loop(t));
   }
@@ -366,5 +385,6 @@ export class Game {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    if (this.composer) this.composer.setSize(w, h);
   }
 }
