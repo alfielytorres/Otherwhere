@@ -38,7 +38,8 @@ export class PlayerComp {
     this.currentBuilding = null;
     this.exteriorX = 0;
     this.exteriorZ = 10;
-    this.interiorBounds = null; // { minX, maxX, minZ, maxZ }
+    this.interiorBounds = null;
+    this.relationships = {}; // npcName -> 0-100
   }
 }
 
@@ -64,6 +65,8 @@ export class NPCComp {
     this.waitTime = 0;
     this.speed = 4 + Math.random() * 4;
     this.dialogue = [];
+    this.dialogueIdx = 0;
+    this.relationship = 0;
   }
 }
 

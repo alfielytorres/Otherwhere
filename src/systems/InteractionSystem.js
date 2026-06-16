@@ -1,6 +1,11 @@
 import { System } from '../core/ECS.js';
-import { TransformComp, PlayerComp, BuildingComp } from '../components/Components.js';
+import { TransformComp, PlayerComp, BuildingComp, NPCComp } from '../components/Components.js';
 import { events } from '../core/EventBus.js';
+
+function heartsStr(rel) {
+  const n = Math.min(5, Math.floor((rel || 0) / 20));
+  return '❤'.repeat(n) + '♡'.repeat(5 - n);
+}
 
 export class InteractionSystem extends System {
   constructor(interiors = new Map()) {
@@ -8,6 +13,7 @@ export class InteractionSystem extends System {
     this.interiors = interiors;
     this.nearbyBuilding = null;
     this.nearbyZone = null;
+    this.nearbyNPC = null;
     this._ePressed = false;
     this._eDown = false;
     this._escPressed = false;
@@ -63,18 +69,58 @@ export class InteractionSystem extends System {
         }
         if (this._ePressed && closest) {
           this._ePressed = false;
-          events.emit('show_zone_activities', { activityKeys: closest.activityKeys, building: player.currentBuilding });
+          if (closest.isExitZone) {
+            events.emit('exit_building', { building: player.currentBuilding });
+            this.nearbyZone = null;
+          } else {
+            events.emit('show_zone_activities', { activityKeys: closest.activityKeys, building: player.currentBuilding });
+          }
         } else {
           this._ePressed = false;
         }
       } else {
-        // No interior data (outdoor building) - clear nearby zone
         this.nearbyZone = null;
         this._ePressed = false;
       }
     } else {
-      // Outdoor: check building proximity
       this.nearbyZone = null;
+
+      // Check NPC proximity first (3.5 unit radius)
+      const npcEntities = world.query(NPCComp, TransformComp);
+      let nearNPC = null, nearNPCTransform = null, nearNPCDist = Infinity;
+      for (const ne of npcEntities) {
+        const npc = ne.get(NPCComp);
+        if (npc.npcType === 'dog') continue;
+        const nt = ne.get(TransformComp);
+        const dx = transform.x - nt.x, dz = transform.z - nt.z;
+        const d = Math.sqrt(dx * dx + dz * dz);
+        if (d < 3.5 && d < nearNPCDist) {
+          nearNPCDist = d;
+          nearNPC = npc;
+          nearNPCTransform = nt;
+        }
+      }
+
+      if (nearNPC !== this.nearbyNPC) {
+        this.nearbyNPC = nearNPC;
+        if (nearNPC) {
+          const rel = (player.relationships && player.relationships[nearNPC.name]) || 0;
+          events.emit('interaction_prompt', { show: true, label: `[E] Kausapin si ${nearNPC.name} ${heartsStr(rel)}` });
+          this.nearbyBuilding = null;
+        } else {
+          events.emit('interaction_prompt', { show: false });
+        }
+      }
+
+      if (nearNPC) {
+        if (this._ePressed) {
+          this._ePressed = false;
+          events.emit('talk_to_npc', { npc: nearNPC, npcTransform: nearNPCTransform });
+        }
+        return;
+      }
+
+      // Building proximity
       const buildings = world.query(BuildingComp);
       let closestBuilding = null;
       let closestDist = Infinity;

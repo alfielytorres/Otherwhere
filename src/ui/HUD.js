@@ -1,5 +1,13 @@
 // HUD - DOM-based UI overlay
 
+function _relLevel(rel) {
+  if (rel >= 80) return { label: 'Mahal na Kaibigan', color: '#ff69b4' };
+  if (rel >= 60) return { label: 'Malapit na Kaibigan', color: '#9C27B0' };
+  if (rel >= 40) return { label: 'Kaibigan', color: '#4CAF50' };
+  if (rel >= 20) return { label: 'Kilala', color: '#2196F3' };
+  return { label: 'Estranghero', color: '#9E9E9E' };
+}
+
 const NEEDS_CONFIG_DISPLAY = [
   { key: 'gutom', label: 'Gutom', emoji: '🍚', color: '#4CAF50' },
   { key: 'lakas', label: 'Lakas', emoji: '⚡', color: '#FFC107' },
@@ -307,6 +315,33 @@ export function initHUD(eventsInstance) {
   notificationEl.id = 'hud-notification';
   document.body.appendChild(notificationEl);
 
+  // NPC dialogue bubble
+  const dialogueBubble = document.createElement('div');
+  dialogueBubble.id = 'hud-dialogue-bubble';
+  dialogueBubble.style.cssText = `
+    position:fixed;bottom:160px;left:50%;transform:translateX(-50%);
+    background:rgba(5,10,20,0.93);border:1.5px solid rgba(252,209,22,0.55);
+    border-radius:14px;padding:14px 20px;color:white;
+    font-family:'Poppins',sans-serif;min-width:240px;max-width:360px;
+    display:none;pointer-events:none;z-index:450;
+    backdrop-filter:blur(8px);box-shadow:0 4px 24px rgba(0,0,0,0.6);
+  `;
+  document.body.appendChild(dialogueBubble);
+
+  eventsInstance.on('show_dialogue', (data) => {
+    const n = Math.min(5, Math.floor((data.relationship || 0) / 20));
+    const hearts = '❤'.repeat(n) + '♡'.repeat(5 - n);
+    const lvl = _relLevel(data.relationship || 0);
+    dialogueBubble.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#FCD116;margin-bottom:3px;">${data.name}</div>
+      <div style="font-size:11px;color:${lvl.color};margin-bottom:8px;">${hearts} ${lvl.label} (${data.relationship}/100)</div>
+      <div style="font-size:13px;line-height:1.5;">"${data.text}"</div>
+    `;
+    dialogueBubble.style.display = 'block';
+    clearTimeout(dialogueBubble._t);
+    dialogueBubble._t = setTimeout(() => { dialogueBubble.style.display = 'none'; }, 3500);
+  });
+
   // First-person exit indicator
   const fpIndicator = document.createElement('div');
   fpIndicator.id = 'hud-fp-indicator';
@@ -334,14 +369,13 @@ export function initHUD(eventsInstance) {
     }
   });
 
-  eventsInstance.on('camera_mode_changed', (data) => {
-    if (fpIndicator) {
-      fpIndicator.style.display = data.mode === 'firstperson' ? 'block' : 'none';
+  eventsInstance.on('enter_building', (data) => {
+    if (fpIndicator && data.building && !data.building.isOutdoor) {
+      fpIndicator.style.display = 'block';
     }
-    // Hide the entry prompt when switching into first-person.
-    if (data.mode === 'firstperson' && interactionPromptEl) {
-      interactionPromptEl.style.display = 'none';
-    }
+  });
+  eventsInstance.on('exit_building', () => {
+    if (fpIndicator) fpIndicator.style.display = 'none';
   });
 
   eventsInstance.on('need_critical', (data) => {

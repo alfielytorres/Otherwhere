@@ -118,6 +118,72 @@ function makeDancer(outfitColor = 0xff66aa, pose = 0) {
   return g;
 }
 
+// Patron colors
+const P_SKINS  = [0xC68642, 0xAB7442, 0x8D5524, 0xD4A574, 0xE8B89A, 0xF1C27D];
+const P_SHIRTS = [0xE74C3C, 0x3498DB, 0x2ECC71, 0xF39C12, 0x9B59B6, 0xFF5722, 0xFFFFFF, 0x888888, 0x222233, 0xEE9900];
+const P_PANTS  = [0x1A237E, 0x37474F, 0x212121, 0x4A148C, 0x1B5E20, 0x5D4037];
+
+function makePatron(skinColor, shirtColor, pantsColor, sitting = false) {
+  const g = new THREE.Group();
+  const S = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.85 });
+  const T = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.75 });
+  const P = new THREE.MeshStandardMaterial({ color: pantsColor, roughness: 0.8 });
+  const Hr = new THREE.MeshStandardMaterial({ color: 0x1A1A1A, roughness: 0.9 });
+
+  const headY = sitting ? 1.06 : 1.62;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 7, 6), S);
+  head.position.y = headY; head.castShadow = true;
+  g.add(head);
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.135, 7, 6, 0, Math.PI * 2, 0, Math.PI * 0.55), Hr);
+  hair.position.y = headY + 0.07; g.add(hair);
+
+  if (sitting) {
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.3, 3, 7), T);
+    torso.position.set(0, 0.68, 0); g.add(torso);
+    const lA = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.24, 2, 6), T.clone());
+    lA.position.set(-0.19, 0.67, 0.08); lA.rotation.x = 0.4; g.add(lA);
+    const rA = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.24, 2, 6), T.clone());
+    rA.position.set(0.19, 0.67, 0.08); rA.rotation.x = 0.4; g.add(rA);
+    const lTh = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.23, 2, 6), P.clone());
+    lTh.position.set(-0.1, 0.46, 0.11); lTh.rotation.x = Math.PI / 2; g.add(lTh);
+    const rTh = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.23, 2, 6), P.clone());
+    rTh.position.set(0.1, 0.46, 0.11); rTh.rotation.x = Math.PI / 2; g.add(rTh);
+    const lCa = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.22, 2, 6), P.clone());
+    lCa.position.set(-0.1, 0.16, 0.27); g.add(lCa);
+    const rCa = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.22, 2, 6), P.clone());
+    rCa.position.set(0.1, 0.16, 0.27); g.add(rCa);
+  } else {
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.44, 3, 8), T);
+    torso.position.set(0, 1.1, 0); g.add(torso);
+    const lA = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.26, 2, 6), T.clone());
+    lA.position.set(-0.21, 1.12, 0); lA.rotation.z = 0.18; g.add(lA);
+    const rA = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.26, 2, 6), T.clone());
+    rA.position.set(0.21, 1.12, 0); rA.rotation.z = -0.18; g.add(rA);
+    const lL = new THREE.Mesh(new THREE.CapsuleGeometry(0.068, 0.42, 2, 6), P.clone());
+    lL.position.set(-0.1, 0.5, 0); g.add(lL);
+    const rL = new THREE.Mesh(new THREE.CapsuleGeometry(0.068, 0.42, 2, 6), P.clone());
+    rL.position.set(0.1, 0.5, 0); g.add(rL);
+  }
+  return { group: g, head, phase: Math.random() * Math.PI * 2 };
+}
+
+function rp(sitting = false) {
+  return makePatron(
+    P_SKINS[Math.floor(Math.random() * P_SKINS.length)],
+    P_SHIRTS[Math.floor(Math.random() * P_SHIRTS.length)],
+    P_PANTS[Math.floor(Math.random() * P_PANTS.length)],
+    sitting
+  );
+}
+
+function addP(group, patrons, x, y, z, sitting, rotY = 0) {
+  const p = rp(sitting);
+  p.group.position.set(x, y, z);
+  p.group.rotation.y = rotY;
+  group.add(p.group);
+  patrons.push(p);
+}
+
 // Reusable furniture
 function makeChair(seatColor = 0x222222) {
   const g = new THREE.Group();
@@ -258,7 +324,16 @@ function buildBar(group, W, H, D) {
   addPointLight(group, 0xff66aa, 0.9, 3, H - 0.5, 2, 12);
   addPointLight(group, 0xff0044, 0.8, 0, H - 0.5, D / 2 - 2, 10);
 
+  const patrons = [];
+  addP(group, patrons, 0, 0, -D/2 + 0.7, false, 0);           // bartender
+  addP(group, patrons, -2.4, 0.38, -D/2 + 2.0, true, Math.PI); // bar patron 1
+  addP(group, patrons,  0,   0.38, -D/2 + 2.0, true, Math.PI); // bar patron 2
+  addP(group, patrons,  2.4, 0.38, -D/2 + 2.0, true, Math.PI); // bar patron 3
+  addP(group, patrons, -4, 0, 2.5, true, 0.8);                  // table patron
+  addP(group, patrons,  4, 0, 3.0, true, -0.5);                 // table patron
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: -D / 2 + 2.5, radius: 2.6, activityKeys: ['DRINK', 'SOCIALIZE'], label: 'Uminom' },
       { x: 0, z: D / 2 - 2, radius: 2.6, activityKeys: ['SING', 'WATCH_SHOW'], label: 'Kumanta / Manood' }
@@ -304,7 +379,13 @@ function buildSevenEleven(group, W, H, D) {
   addPointLight(group, 0xffffff, 1.6, -3, H - 0.3, 0, 18);
   addPointLight(group, 0xffffff, 1.6, 3, H - 0.3, 0, 18);
 
+  const patrons = [];
+  addP(group, patrons, -3, 0, D/2 - 1.0, false, Math.PI); // cashier at counter
+  addP(group, patrons,  0, 0, 0,           false, -0.4);   // shopper browsing
+  addP(group, patrons,  2.5, 0, 0.5,       false,  0.6);   // shopper browsing
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: 1, radius: 3.5, activityKeys: ['BUY_DRINKS', 'BUY_SNACKS', 'BUY_CIGARETTE'], label: 'Bumili' }
     ]
@@ -356,7 +437,19 @@ function buildOffice(group, W, H, D) {
   addPointLight(group, 0xffffff, 1.4, 4, H - 0.3, 0, 18);
   addPointLight(group, 0xffffff, 1.0, 0, H - 0.3, -D / 2 + 2, 14);
 
+  const patrons = [];
+  // Workers at desks (row 0: dz=-1, row 1: dz=3; cols: dx=-6,−2,2,6)
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 4; col++) {
+      const dx = -6 + col * 4;
+      const dz = -1 + row * 4;
+      addP(group, patrons, dx, 0, dz + 0.8, true, Math.PI); // seated facing screen
+    }
+  }
+  addP(group, patrons, 0, 0, D/2 - 1.0, false, Math.PI); // receptionist
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: 1, radius: 4, activityKeys: ['WORK', 'BROWSE_INTERNET'], label: 'Magtrabaho' },
       { x: 0, z: -D / 2 + 2, radius: 3, activityKeys: ['REPORT_TO_BOSS'], label: 'Mag-ulat sa Boss' }
@@ -405,7 +498,17 @@ function buildMall(group, W, H, D) {
   addPointLight(group, 0xffffff, 0.9, -7, H - 0.5, 0, 16);
   addPointLight(group, 0xffffff, 0.9, 7, H - 0.5, 0, 16);
 
+  const patrons = [];
+  // Food court diners
+  for (const [tx, tz, ry] of [[-3,-2,0.5],[3,-2,-0.3],[-3,2,1.2],[3,2,-0.8]]) {
+    addP(group, patrons, tx + 0.9, 0, tz, true, ry);
+  }
+  // Shoppers near stalls
+  addP(group, patrons, -W/2 + 3, 0, -5, false, 0.3);
+  addP(group, patrons,  W/2 - 3, 0,  5, false, -1.0);
+
   return {
+    patrons,
     interactionZones: [
       { x: -W / 2 + 3.5, z: -5, radius: 3, activityKeys: ['SHOP'], label: 'Mamili' },
       { x: 0, z: 2, radius: 3.5, activityKeys: ['EAT_FOOD_COURT'], label: 'Kumain sa Food Court' },
@@ -462,7 +565,18 @@ function buildChurch(group, W, H, D) {
   addPointLight(group, 0xfff0d0, 1.0, 0, H - 1, 0, 22);
   addPointLight(group, 0xffe0b0, 0.7, 0, H - 1, -D / 2 + 3, 14);
 
+  const patrons = [];
+  // Congregation in pews — rows at z=-4,-1.8,0.4,2.6,4.8,7.0; sides ±3.5
+  const pewRows = [-4, -1.8, 0.4, 2.6, 4.8, 7.0];
+  for (const pz of pewRows) {
+    addP(group, patrons, -3.5, 0, pz, true, Math.PI); // left pew
+    addP(group, patrons,  3.5, 0, pz, true, Math.PI); // right pew
+  }
+  // Priest at altar
+  addP(group, patrons, 0, 0.4, -D/2 + 2.2, false, 0);
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: -D / 2 + 5, radius: 3.5, activityKeys: ['ATTEND_MASS', 'PRAY'], label: 'Magsimba / Manalangin' },
       { x: -5, z: -2.5, radius: 2.5, activityKeys: ['LIGHT_CANDLE'], label: 'Mag-ilaw ng Kandila' }
@@ -516,7 +630,17 @@ function buildRestaurant(group, W, H, D) {
   addPointLight(group, 0xfff0d0, 1.4, 0, H - 0.5, 0, 18);
   addPointLight(group, 0xffe0b0, 0.9, 0, H - 0.5, -D / 2 + 2, 12);
 
+  const patrons = [];
+  // Diners at the 4 tables (from the furniture: tables at [-3.5,0],[3.5,0],[-3.5,3.5],[3.5,3.5])
+  for (const [tx, tz] of [[-3.5, 0], [3.5, 0], [-3.5, 3.5], [3.5, 3.5]]) {
+    addP(group, patrons, tx - 0.85, 0, tz, true, Math.PI / 2);
+    addP(group, patrons, tx + 0.85, 0, tz, true, -Math.PI / 2);
+  }
+  // Server / turo-turo worker at counter
+  addP(group, patrons, 0, 0, -D/2 + 0.7, false, 0);
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: -D / 2 + 2.5, radius: 3, activityKeys: ['EAT_ADOBO', 'EAT_SINIGANG', 'EAT_LECHON'], label: 'Kumain' }
     ]
@@ -560,7 +684,19 @@ function buildInternetCafe(group, W, H, D) {
   addPointLight(group, 0xff0066, 0.5, -4, H - 0.5, 2, 12);
   addPointLight(group, 0x00ff66, 0.5, 4, H - 0.5, 2, 12);
 
+  const patrons = [];
+  // Gamers at stations: 3 rows × 3 cols (from furniture: dx=-3.5+col*3.5, dz=-3+row*2.5)
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const dx = -3.5 + col * 3.5;
+      const dz = -3 + row * 2.5;
+      addP(group, patrons, dx, 0, dz + 0.6, true, Math.PI); // seated, facing screen
+    }
+  }
+  addP(group, patrons, -3, 0, D/2 - 0.8, false, Math.PI); // counter staff
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: -1, radius: 4, activityKeys: ['PLAY_GAMES', 'BROWSE_INTERNET'], label: 'Maglaro' },
       { x: -3, z: D / 2 - 2, radius: 2.5, activityKeys: ['BUY_SNACKS'], label: 'Bumili ng Meryenda' }
@@ -624,7 +760,17 @@ function buildGym(group, W, H, D) {
   addPointLight(group, 0xffffff, 1.5, -3, H - 0.3, 0, 18);
   addPointLight(group, 0xffffff, 1.5, 3, H - 0.3, 0, 18);
 
+  const patrons = [];
+  // People on treadmills (standing, facing -z)
+  for (let i = 0; i < 3; i++) {
+    addP(group, patrons, -5.5 + i * 2, 0.25, -D/2 + 1.5, false, Math.PI);
+  }
+  // Person at bench press
+  addP(group, patrons, -3, 0.5, 0, true, Math.PI / 2);
+  addP(group, patrons,  3, 0.5, 0, true, -Math.PI / 2);
+
   return {
+    patrons,
     interactionZones: [
       { x: -3, z: 0, radius: 3, activityKeys: ['EXERCISE'], label: 'Mag-ehersisyo' },
       { x: 3, z: 0, radius: 3, activityKeys: ['TRAIN'], label: 'Mag-ensayo' }
@@ -692,8 +838,16 @@ function buildKaraoke(group, W, H, D) {
   dancerPivotB.add(makeDancer(0x00ffff, 1));
   group.add(dancerPivotB);
 
+  const patrons = [];
+  // People on sofas (sides: x=±(W/2-0.8), z=1)
+  addP(group, patrons, -W/2 + 1.0, 0.35, 0.5, true,  0.4);
+  addP(group, patrons, -W/2 + 1.0, 0.35, 2.0, true, -0.3);
+  addP(group, patrons,  W/2 - 1.0, 0.35, 0.5, true,  Math.PI - 0.4);
+  addP(group, patrons,  W/2 - 1.0, 0.35, 2.0, true,  Math.PI + 0.3);
+
   return {
     dancers: [dancerPivotA, dancerPivotB],
+    patrons,
     interactionZones: [
       { x: 0, z: -1, radius: 3, activityKeys: ['SING'], label: 'Kumanta' },
       { x: 0, z: 2.5, radius: 2.5, activityKeys: ['DRINK', 'SOCIALIZE'], label: 'Uminom' }
@@ -735,7 +889,20 @@ function buildSpa(group, W, H, D) {
   addPointLight(group, 0xffcc88, 1.0, 0, H - 0.5, 0, 18);
   addPointLight(group, 0xffbb77, 0.6, 0, H - 0.5, D / 2 - 2, 10);
 
+  const patrons = [];
+  // Clients lying on massage tables (3 tables at x=-3.5,0,3.5, z=0)
+  for (let i = 0; i < 3; i++) {
+    const tx = -3.5 + i * 3.5;
+    addP(group, patrons, tx, 0.47, 0, true, Math.PI / 2); // client on table
+  }
+  // Masseurs standing beside tables
+  addP(group, patrons, -3.5 + 0.7, 0, 0.7, false, -0.8);
+  addP(group, patrons,  3.5 + 0.7, 0, 0.7, false, -2.0);
+  // Receptionist
+  addP(group, patrons, 0, 0, D/2 - 1.0, false, Math.PI);
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: 0, radius: 4, activityKeys: ['GET_HILOT', 'REST'], label: 'Magpa-hilot' }
     ]
@@ -772,7 +939,19 @@ function buildPalengke(group, W, H, D) {
     addPointLight(group, 0xffeebb, 1.1, bx, H - 0.8, 0, 14);
   }
 
+  const patrons = [];
+  // Vendors at 3 stalls (sx = -7, 0, 7)
+  for (let r = 0; r < 3; r++) {
+    const sx = -7 + r * 7;
+    addP(group, patrons, sx, 0, 1.5, false, Math.PI); // vendor facing +z (toward shoppers)
+  }
+  // Shoppers
+  addP(group, patrons, -4, 0, 2.5, false, -0.6);
+  addP(group, patrons,  3, 0, 2.0, false,  0.8);
+  addP(group, patrons,  0, 0, 3.5, false,  0.0);
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: 1.5, radius: 4, activityKeys: ['BUY_GROCERIES', 'BUY_SNACKS'], label: 'Mamili ng Pagkain' }
     ]
@@ -812,7 +991,12 @@ function buildSariSari(group, W, H, D) {
 
   addPointLight(group, 0xffeecc, 1.3, 0, H - 0.3, 0, 14);
 
+  const patrons = [];
+  addP(group, patrons, 0, 0, D/2 - 0.8, false, Math.PI); // vendor behind counter
+  addP(group, patrons, 0, 0, D/2 - 2.5, false, 0);       // customer at window
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: D / 2 - 2, radius: 3, activityKeys: ['BUY_DRINKS', 'BUY_SNACKS', 'CHISMIS'], label: 'Bumili' }
     ]
@@ -883,8 +1067,19 @@ function buildGirlieBar(group, W, H, D) {
   pivot2.add(d2);
   group.add(pivot2);
 
+  const patrons = [];
+  addP(group, patrons, 0, 0, -D/2 + 0.7, false, 0);       // bartender
+  // Customers at bar stools
+  for (let i = 0; i < 4; i++) {
+    addP(group, patrons, -4.5 + i * 3, 0.38, -D/2 + 2.2, true, Math.PI);
+  }
+  // Booth customers
+  addP(group, patrons, -W/2 + 1.2, 0.35, -1, true,  0.5);
+  addP(group, patrons,  W/2 - 1.2, 0.35,  1, true, -0.5);
+
   return {
     dancers: [pivot1, pivot2],
+    patrons,
     interactionZones: [
       { x: 0, z: D / 2 - 4, radius: 3.5, activityKeys: ['WATCH_SHOW', 'DRINK', 'SOCIALIZE'], label: 'Uminom at Manood' },
       { x: W / 2 - 2.2, z: 0, radius: 2.8, activityKeys: ['VIP_ROOM'], label: 'VIP Room' }
@@ -933,7 +1128,21 @@ function buildCasino(group, W, H, D) {
   addPointLight(group, 0xffaa44, 0.9, 3, H - 0.5, -3, 14);
   addPointLight(group, 0xffbb55, 0.8, 0, H - 0.5, 3, 14);
 
+  const patrons = [];
+  // Gamblers at mahjong tables (tables at [-4,-3],[0,-3],[4,-3])
+  for (const [tx, tz] of [[-4, -3], [0, -3], [4, -3]]) {
+    for (const off of [[-1.1, 0], [1.1, 0], [0, -1.1], [0, 1.1]]) {
+      addP(group, patrons, tx + off[0], 0.38, tz + off[1], true, Math.atan2(-off[0], -off[1]));
+    }
+  }
+  // Card table players
+  for (let i = 0; i < 4; i++) {
+    const ang = (i / 4) * Math.PI * 2;
+    addP(group, patrons, -3 + Math.cos(ang) * 1.4, 0.38, 3 + Math.sin(ang) * 1.4, true, ang + Math.PI);
+  }
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: -3, radius: 4, activityKeys: ['GAMBLE'], label: 'Magsugal' },
       { x: -W / 2 + 2.2, z: 0, radius: 2.8, activityKeys: ['DRINK'], label: 'Uminom' }
@@ -972,7 +1181,12 @@ function buildPawnshop(group, W, H, D) {
 
   addPointLight(group, 0xffeecc, 1.3, 0, H - 0.3, 0, 14);
 
+  const patrons = [];
+  addP(group, patrons, 0, 0, 0.5, false, 0);             // attendant behind counter
+  addP(group, patrons, 0, 0, D/2 - 2.5, false, Math.PI); // customer at counter
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: D / 2 - 2, radius: 3, activityKeys: ['PAWN_ITEM', 'BUY_CONTRABAND'], label: 'Magsangla' }
     ]
@@ -1001,7 +1215,14 @@ function buildSketchyMassage(group, W, H, D) {
   addPointLight(group, 0xff5599, 1.0, 0, H - 0.5, 0, 16);
   addPointLight(group, 0xff88bb, 0.6, 0, H - 0.5, D / 2 - 2, 10);
 
+  const patrons = [];
+  addP(group, patrons, 0, 0, D/2 - 1.0, false, Math.PI); // receptionist
+  addP(group, patrons, -3, 0, -1.5, true, 0);              // client
+  addP(group, patrons,  0, 0, -1.5, true, 0);              // client
+  addP(group, patrons,  3, 0, -1.5, true, 0);              // client
+
   return {
+    patrons,
     interactionZones: [
       { x: 0, z: D / 2 - 2.5, radius: 3.5, activityKeys: ['GET_SPECIAL_MASSAGE', 'REST'], label: 'Masahe' }
     ]
@@ -1064,8 +1285,20 @@ export function createInteriors(scene, buildings) {
       z: z.z,
       radius: z.radius || 2.5,
       activityKeys: z.activityKeys,
-      label: z.label
+      label: z.label,
+      isExitZone: z.isExitZone || false
     }));
+
+    // Add exit zone at the doorway
+    interactionZones.push({
+      x: offsetX,
+      y: 0,
+      z: D / 2 - 2.0,
+      radius: 2.2,
+      activityKeys: [],
+      label: '🚪 Lumabas (Exit)',
+      isExitZone: true
+    });
 
     interiors.set(b.id, {
       buildingId: b.id,
@@ -1073,6 +1306,8 @@ export function createInteriors(scene, buildings) {
       group,
       entryPoint: { x: offsetX, y: 0, z: D / 2 - 1.5 },
       interactionZones,
+      dancers: result.dancers || [],
+      patrons: result.patrons || [],
       bounds: {
         minX: offsetX - W / 2 + 0.6,
         maxX: offsetX + W / 2 - 0.6,

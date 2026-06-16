@@ -297,6 +297,35 @@ export class Game {
       player.activityDuration = realDuration;
       this._showQuickNotif(`🎯 Nagsimula: ${data.actData.name}!`);
     });
+
+    events.on('talk_to_npc', (data) => {
+      const { npc, npcTransform } = data;
+      const player = this.playerEntity.get(PlayerComp);
+      const playerTransform = this.playerEntity.get(TransformComp);
+
+      // Update relationship
+      const current = player.relationships[npc.name] || 0;
+      const gain = 3 + Math.floor(Math.random() * 4);
+      player.relationships[npc.name] = Math.min(100, current + gain);
+      npc.relationship = player.relationships[npc.name];
+
+      // NPC stops and faces player briefly
+      npc.waitTime = 4;
+      if (npcTransform && playerTransform) {
+        const dx = playerTransform.x - npcTransform.x;
+        const dz = playerTransform.z - npcTransform.z;
+        npcTransform.rotY = Math.atan2(dx, dz);
+      }
+
+      // Cycle through dialogue lines
+      const lines = npc.dialogue && npc.dialogue.length > 0 ? npc.dialogue : ['Kumusta!'];
+      npc.dialogueIdx = ((npc.dialogueIdx || 0) + 1) % lines.length;
+      events.emit('show_dialogue', {
+        name: npc.name,
+        text: lines[npc.dialogueIdx],
+        relationship: player.relationships[npc.name]
+      });
+    });
   }
 
   _initPostProcessing() {
@@ -363,10 +392,14 @@ export class Game {
       this.water.material.opacity = 0.75 + Math.sin(t * 1.2) * 0.1;
     }
 
-    // Animate interior dancers
-    if (this._activeInterior && this._activeInterior.group.visible && this._activeInterior.dancers) {
-      for (const dancer of this._activeInterior.dancers) {
+    // Animate interior NPCs
+    if (this._activeInterior && this._activeInterior.group.visible) {
+      const t = timestamp * 0.001;
+      for (const dancer of this._activeInterior.dancers || []) {
         dancer.rotation.y += delta * 1.8;
+      }
+      for (const patron of this._activeInterior.patrons || []) {
+        if (patron.head) patron.head.rotation.y = Math.sin(t * 0.35 + patron.phase) * 0.6;
       }
     }
 

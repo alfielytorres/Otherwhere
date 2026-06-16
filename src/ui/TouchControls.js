@@ -178,9 +178,8 @@ export function initTouchControls() {
     interactBtn.classList.toggle('lit', !!data.show);
   });
 
-  events.on('camera_mode_changed', (data) => {
-    exitBtn.style.display = data.mode === 'firstperson' ? 'block' : 'none';
-  });
+  events.on('enter_building', () => { exitBtn.style.display = 'block'; });
+  events.on('exit_building', () => { exitBtn.style.display = 'none'; });
 }
 
 function _moveJoy(cx, cy, ox, oy, radius, thumb) {
