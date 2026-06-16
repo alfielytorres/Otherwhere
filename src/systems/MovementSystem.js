@@ -1,5 +1,6 @@
 import { System } from '../core/ECS.js';
 import { TransformComp, VelocityComp, MeshComp, PlayerComp, BuildingComp } from '../components/Components.js';
+import { touchJoystick } from '../ui/TouchControls.js';
 
 export class MovementSystem extends System {
   constructor() {
@@ -42,6 +43,10 @@ export class MovementSystem extends System {
     if (right) dx += 1;
     if (up) dz -= 1;
     if (down) dz += 1;
+
+    // Merge touch joystick (no-op on desktop since touchJoystick stays {0,0})
+    dx += touchJoystick.dx;
+    dz += touchJoystick.dz;
 
     // Normalize diagonal
     if (dx !== 0 && dz !== 0) {

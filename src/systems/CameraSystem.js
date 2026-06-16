@@ -3,6 +3,8 @@ import { TransformComp, PlayerComp, MeshComp } from '../components/Components.js
 import { events } from '../core/EventBus.js';
 import * as THREE from 'three';
 
+const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
 export class CameraSystem extends System {
   constructor(camera) {
     super();
@@ -53,17 +55,71 @@ export class CameraSystem extends System {
     document.addEventListener('pointerlockchange', () => {
       this._isPointerLocked = document.pointerLockElement === document.body;
     });
-    document.addEventListener('click', () => {
-      if (this.mode === 'firstperson' && !this._isPointerLocked) {
-        document.body.requestPointerLock();
-      }
-    });
+    if (!isTouchDevice) {
+      document.addEventListener('click', () => {
+        if (this.mode === 'firstperson' && !this._isPointerLocked) {
+          document.body.requestPointerLock();
+        }
+      });
+    }
+
+    // Touch camera rotation — right half of screen, any touch not claimed by joystick
+    if (isTouchDevice) {
+      let camTouchId = null;
+      let lastTX = 0;
+      let lastTY = 0;
+
+      window.addEventListener('touchstart', (e) => {
+        for (const touch of e.changedTouches) {
+          if (camTouchId !== null) break;
+          // Joystick zone is bottom-left (~160px wide, ~160px tall)
+          const inJoystickZone =
+            touch.clientX < 160 && touch.clientY > window.innerHeight - 160;
+          // Interact/exit buttons are on right side or top-center — skip those
+          const inInteractBtn =
+            touch.clientX > window.innerWidth - 110 && touch.clientY > window.innerHeight - 160;
+          if (inJoystickZone || inInteractBtn) continue;
+          camTouchId = touch.identifier;
+          lastTX = touch.clientX;
+          lastTY = touch.clientY;
+          break;
+        }
+      });
+
+      window.addEventListener('touchmove', (e) => {
+        for (const touch of e.changedTouches) {
+          if (touch.identifier !== camTouchId) continue;
+          const dx = touch.clientX - lastTX;
+          const dy = touch.clientY - lastTY;
+          lastTX = touch.clientX;
+          lastTY = touch.clientY;
+          if (this.mode === 'orbit') {
+            this.yaw -= dx * 0.005;
+            this.pitch -= dy * 0.005;
+            this.pitch = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this.pitch));
+          } else if (this.mode === 'firstperson') {
+            this.fpYaw -= dx * 0.004;
+            this.fpPitch -= dy * 0.004;
+            this.fpPitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, this.fpPitch));
+          }
+          break;
+        }
+      });
+
+      const _camRelease = (e) => {
+        for (const touch of e.changedTouches) {
+          if (touch.identifier === camTouchId) { camTouchId = null; break; }
+        }
+      };
+      window.addEventListener('touchend', _camRelease);
+      window.addEventListener('touchcancel', _camRelease);
+    }
 
     events.on('enter_firstperson', (data) => {
       this.mode = 'firstperson';
       this.fpYaw = data && data.facingYaw !== undefined ? data.facingYaw : Math.PI;
       this.fpPitch = 0;
-      document.body.requestPointerLock();
+      if (!isTouchDevice) document.body.requestPointerLock();
       events.emit('camera_mode_changed', { mode: 'firstperson' });
     });
     events.on('exit_firstperson', () => {

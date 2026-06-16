@@ -15,6 +15,7 @@ import { NPCSystem } from './systems/NPCSystem.js';
 import { InteractionSystem } from './systems/InteractionSystem.js';
 import { initHUD, updateHUD } from './ui/HUD.js';
 import { initActivityMenu } from './ui/ActivityMenu.js';
+import { initTouchControls } from './ui/TouchControls.js';
 import { createInteriors } from './world/BuildingInteriors.js';
 import { BUILDINGS, NPC_NAMES, NPC_DIALOGUES, ACTIVITIES } from './data/GameData.js';
 
@@ -98,6 +99,11 @@ export class Game {
     playerMesh.position.set(0, 0, 10);
     this.scene.add(playerMesh);
 
+    // Warm point light that follows the player so you can see where you walk
+    this.playerLight = new THREE.PointLight(0xffe0a0, 2.2, 14);
+    this.playerLight.position.set(0, 2.5, 10);
+    this.scene.add(this.playerLight);
+
     this.playerEntity = this.ecsWorld.createEntity(
       new TransformComp(0, 0, 10),
       new VelocityComp(),
@@ -172,6 +178,7 @@ export class Game {
   _initUI() {
     initHUD(events);
     initActivityMenu(events);
+    initTouchControls();
   }
 
   _initEvents() {
@@ -328,6 +335,12 @@ export class Game {
       for (const dancer of this._activeInterior.dancers) {
         dancer.rotation.y += delta * 1.8;
       }
+    }
+
+    // Track player light
+    if (this.playerEntity && this.playerLight) {
+      const transform = this.playerEntity.get(TransformComp);
+      if (transform) this.playerLight.position.set(transform.x, transform.y + 2.5, transform.z);
     }
 
     // Update HUD
