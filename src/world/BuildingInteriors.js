@@ -122,48 +122,105 @@ function makeDancer(outfitColor = 0xff66aa, pose = 0) {
 const P_SKINS  = [0xC68642, 0xAB7442, 0x8D5524, 0xD4A574, 0xE8B89A, 0xF1C27D];
 const P_SHIRTS = [0xE74C3C, 0x3498DB, 0x2ECC71, 0xF39C12, 0x9B59B6, 0xFF5722, 0xFFFFFF, 0x888888, 0x222233, 0xEE9900];
 const P_PANTS  = [0x1A237E, 0x37474F, 0x212121, 0x4A148C, 0x1B5E20, 0x5D4037];
+const P_DRESS  = [0xFF69B4, 0xFF1493, 0xE91E63, 0x9C27B0, 0xF06292, 0xCE93D8, 0xFF5722, 0x80DEEA, 0xFFF176];
+
+function mkm(color, rough = 0.8) {
+  return new THREE.MeshStandardMaterial({ color, roughness: rough });
+}
 
 function makePatron(skinColor, shirtColor, pantsColor, sitting = false) {
-  const g = new THREE.Group();
-  const S = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.85 });
-  const T = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.75 });
-  const P = new THREE.MeshStandardMaterial({ color: pantsColor, roughness: 0.8 });
-  const Hr = new THREE.MeshStandardMaterial({ color: 0x1A1A1A, roughness: 0.9 });
+  const isFem = Math.random() < 0.5;
+  const g   = new THREE.Group();
+  const S   = mkm(skinColor, 0.84);
+  const Hr  = mkm(0x1A1A1A, 0.9);
 
   const headY = sitting ? 1.06 : 1.62;
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 7, 6), S);
   head.position.y = headY; head.castShadow = true;
   g.add(head);
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.135, 7, 6, 0, Math.PI * 2, 0, Math.PI * 0.55), Hr);
-  hair.position.y = headY + 0.07; g.add(hair);
 
-  if (sitting) {
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.3, 3, 7), T);
-    torso.position.set(0, 0.68, 0); g.add(torso);
-    const lA = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.24, 2, 6), T.clone());
-    lA.position.set(-0.19, 0.67, 0.08); lA.rotation.x = 0.4; g.add(lA);
-    const rA = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.24, 2, 6), T.clone());
-    rA.position.set(0.19, 0.67, 0.08); rA.rotation.x = 0.4; g.add(rA);
-    const lTh = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.23, 2, 6), P.clone());
-    lTh.position.set(-0.1, 0.46, 0.11); lTh.rotation.x = Math.PI / 2; g.add(lTh);
-    const rTh = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.23, 2, 6), P.clone());
-    rTh.position.set(0.1, 0.46, 0.11); rTh.rotation.x = Math.PI / 2; g.add(rTh);
-    const lCa = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.22, 2, 6), P.clone());
-    lCa.position.set(-0.1, 0.16, 0.27); g.add(lCa);
-    const rCa = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.22, 2, 6), P.clone());
-    rCa.position.set(0.1, 0.16, 0.27); g.add(rCa);
+  if (isFem) {
+    // Long full hair
+    const dressColor = P_DRESS[Math.floor(Math.random() * P_DRESS.length)];
+    const D = mkm(dressColor, 0.70);
+    const hairSphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.165, 8, 8, 0, Math.PI * 2, 0, Math.PI * 0.78), Hr
+    );
+    hairSphere.position.y = headY - 0.04; g.add(hairSphere);
+    const hairTop = new THREE.Mesh(
+      new THREE.SphereGeometry(0.136, 8, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), Hr
+    );
+    hairTop.position.y = headY + 0.06; g.add(hairTop);
+
+    if (sitting) {
+      // Narrow torso
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.32, 8), D);
+      torso.position.set(0, 0.7, 0); g.add(torso);
+      // Bust
+      const bG = new THREE.SphereGeometry(0.07, 6, 6);
+      const bL = new THREE.Mesh(bG, D.clone()); bL.position.set(-0.07, 0.72, 0.07); g.add(bL);
+      const bR = new THREE.Mesh(bG, D.clone()); bR.position.set( 0.07, 0.72, 0.07); g.add(bR);
+      // Lap/skirt
+      const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.22, 0.35, 8), D.clone());
+      skirt.position.set(0, 0.46, 0.05); skirt.rotation.x = Math.PI / 2; g.add(skirt);
+      // Arms
+      const aG = new THREE.CapsuleGeometry(0.04, 0.22, 2, 6);
+      const lA = new THREE.Mesh(aG, S.clone()); lA.position.set(-0.17, 0.68, 0.1); lA.rotation.x = 0.4; g.add(lA);
+      const rA = new THREE.Mesh(aG, S.clone()); rA.position.set( 0.17, 0.68, 0.1); rA.rotation.x = 0.4; g.add(rA);
+    } else {
+      // Narrow top
+      const shoulders = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.11, 0.24, 8), D);
+      shoulders.position.set(0, 1.26, 0); g.add(shoulders);
+      const bG = new THREE.SphereGeometry(0.075, 6, 6);
+      const bL = new THREE.Mesh(bG, D.clone()); bL.position.set(-0.075, 1.18, 0.09); g.add(bL);
+      const bR = new THREE.Mesh(bG, D.clone()); bR.position.set( 0.075, 1.18, 0.09); g.add(bR);
+      // Waist
+      const waist = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.11, 0.14, 8), D.clone());
+      waist.position.set(0, 1.01, 0); g.add(waist);
+      // Flared skirt
+      const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.28, 0.68, 10), D.clone());
+      skirt.position.set(0, 0.63, 0); g.add(skirt);
+      // Legs below skirt hem
+      const legG = new THREE.CapsuleGeometry(0.05, 0.2, 2, 6);
+      const lL = new THREE.Mesh(legG, S.clone()); lL.name = 'lLeg'; lL.position.set(-0.08, 0.2, 0); g.add(lL);
+      const rL = new THREE.Mesh(legG, S.clone()); rL.name = 'rLeg'; rL.position.set( 0.08, 0.2, 0); g.add(rL);
+      // Arms
+      const aG = new THREE.CapsuleGeometry(0.042, 0.24, 2, 6);
+      const lA = new THREE.Mesh(aG, S.clone()); lA.name = 'lArm'; lA.position.set(-0.21, 1.18, 0); lA.rotation.z =  0.16; g.add(lA);
+      const rA = new THREE.Mesh(aG, S.clone()); rA.name = 'rArm'; rA.position.set( 0.21, 1.18, 0); rA.rotation.z = -0.16; g.add(rA);
+    }
   } else {
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.44, 3, 8), T);
-    torso.position.set(0, 1.1, 0); g.add(torso);
-    const lA = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.26, 2, 6), T.clone());
-    lA.position.set(-0.21, 1.12, 0); lA.rotation.z = 0.18; g.add(lA);
-    const rA = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.26, 2, 6), T.clone());
-    rA.position.set(0.21, 1.12, 0); rA.rotation.z = -0.18; g.add(rA);
-    const lL = new THREE.Mesh(new THREE.CapsuleGeometry(0.068, 0.42, 2, 6), P.clone());
-    lL.position.set(-0.1, 0.5, 0); g.add(lL);
-    const rL = new THREE.Mesh(new THREE.CapsuleGeometry(0.068, 0.42, 2, 6), P.clone());
-    rL.position.set(0.1, 0.5, 0); g.add(rL);
+    // Male patron
+    const T = mkm(shirtColor, 0.75);
+    const P = mkm(pantsColor, 0.80);
+    // Short hair
+    const hair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.135, 7, 6, 0, Math.PI * 2, 0, Math.PI * 0.50), Hr
+    );
+    hair.position.y = headY + 0.06; g.add(hair);
+
+    if (sitting) {
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.32, 8), T);
+      torso.position.set(0, 0.68, 0); g.add(torso);
+      const aG = new THREE.CapsuleGeometry(0.048, 0.24, 2, 6);
+      const lA = new THREE.Mesh(aG, T.clone()); lA.position.set(-0.21, 0.67, 0.08); lA.rotation.x = 0.4; g.add(lA);
+      const rA = new THREE.Mesh(aG, T.clone()); rA.position.set( 0.21, 0.67, 0.08); rA.rotation.x = 0.4; g.add(rA);
+      const lG = new THREE.CapsuleGeometry(0.068, 0.23, 2, 6);
+      const lTh = new THREE.Mesh(lG, P.clone()); lTh.position.set(-0.1, 0.46, 0.11); lTh.rotation.x = Math.PI/2; g.add(lTh);
+      const rTh = new THREE.Mesh(lG, P.clone()); rTh.position.set( 0.1, 0.46, 0.11); rTh.rotation.x = Math.PI/2; g.add(rTh);
+    } else {
+      // Wide-shoulder V torso
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.15, 0.52, 8), T);
+      torso.position.set(0, 1.1, 0); g.add(torso);
+      const aG = new THREE.CapsuleGeometry(0.06, 0.26, 2, 6);
+      const lA = new THREE.Mesh(aG, T.clone()); lA.name = 'lArm'; lA.position.set(-0.30, 1.12, 0); lA.rotation.z =  0.12; g.add(lA);
+      const rA = new THREE.Mesh(aG, T.clone()); rA.name = 'rArm'; rA.position.set( 0.30, 1.12, 0); rA.rotation.z = -0.12; g.add(rA);
+      const lG = new THREE.CapsuleGeometry(0.072, 0.40, 2, 6);
+      const lL = new THREE.Mesh(lG, P.clone()); lL.name = 'lLeg'; lL.position.set(-0.11, 0.5, 0); g.add(lL);
+      const rL = new THREE.Mesh(lG, P.clone()); rL.name = 'rLeg'; rL.position.set( 0.11, 0.5, 0); g.add(rL);
+    }
   }
+
   return { group: g, head, phase: Math.random() * Math.PI * 2 };
 }
 
