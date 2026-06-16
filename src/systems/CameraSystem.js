@@ -63,36 +63,31 @@ export class CameraSystem extends System {
       });
     }
 
-    // Touch camera rotation — right half of screen, any touch not claimed by joystick
+    // Touch camera rotation via Pointer Events on the canvas
+    // The joystick zone and buttons sit above the canvas (z-index 300) so
+    // they naturally steal their own pointer events — no manual exclusion needed.
     if (isTouchDevice) {
-      let camTouchId = null;
-      let lastTX = 0;
-      let lastTY = 0;
+      const canvas = document.getElementById('game-canvas');
+      if (canvas) {
+        let camPtr = null;
+        let lastTX = 0;
+        let lastTY = 0;
 
-      window.addEventListener('touchstart', (e) => {
-        for (const touch of e.changedTouches) {
-          if (camTouchId !== null) break;
-          // Joystick zone is bottom-left (~160px wide, ~160px tall)
-          const inJoystickZone =
-            touch.clientX < 160 && touch.clientY > window.innerHeight - 160;
-          // Interact/exit buttons are on right side or top-center — skip those
-          const inInteractBtn =
-            touch.clientX > window.innerWidth - 110 && touch.clientY > window.innerHeight - 160;
-          if (inJoystickZone || inInteractBtn) continue;
-          camTouchId = touch.identifier;
-          lastTX = touch.clientX;
-          lastTY = touch.clientY;
-          break;
-        }
-      });
+        canvas.addEventListener('pointerdown', (e) => {
+          if (camPtr !== null) return;
+          e.preventDefault();
+          camPtr = e.pointerId;
+          canvas.setPointerCapture(e.pointerId);
+          lastTX = e.clientX;
+          lastTY = e.clientY;
+        });
 
-      window.addEventListener('touchmove', (e) => {
-        for (const touch of e.changedTouches) {
-          if (touch.identifier !== camTouchId) continue;
-          const dx = touch.clientX - lastTX;
-          const dy = touch.clientY - lastTY;
-          lastTX = touch.clientX;
-          lastTY = touch.clientY;
+        canvas.addEventListener('pointermove', (e) => {
+          if (e.pointerId !== camPtr) return;
+          const dx = e.clientX - lastTX;
+          const dy = e.clientY - lastTY;
+          lastTX = e.clientX;
+          lastTY = e.clientY;
           if (this.mode === 'orbit') {
             this.yaw -= dx * 0.005;
             this.pitch -= dy * 0.005;
@@ -102,17 +97,12 @@ export class CameraSystem extends System {
             this.fpPitch -= dy * 0.004;
             this.fpPitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, this.fpPitch));
           }
-          break;
-        }
-      });
+        });
 
-      const _camRelease = (e) => {
-        for (const touch of e.changedTouches) {
-          if (touch.identifier === camTouchId) { camTouchId = null; break; }
-        }
-      };
-      window.addEventListener('touchend', _camRelease);
-      window.addEventListener('touchcancel', _camRelease);
+        const _camUp = (e) => { if (e.pointerId === camPtr) camPtr = null; };
+        canvas.addEventListener('pointerup', _camUp);
+        canvas.addEventListener('pointercancel', _camUp);
+      }
     }
 
     events.on('enter_firstperson', (data) => {

@@ -39,21 +39,22 @@ export class MovementSystem extends System {
     const up = this.keys['KeyW'] || this.keys['ArrowUp'];
     const down = this.keys['KeyS'] || this.keys['ArrowDown'];
 
+    // Keyboard: binary, normalize diagonal to magnitude 1
     if (left) dx -= 1;
     if (right) dx += 1;
     if (up) dz -= 1;
     if (down) dz += 1;
+    if (dx !== 0 && dz !== 0) {
+      const kbLen = Math.sqrt(dx * dx + dz * dz);
+      dx /= kbLen;
+      dz /= kbLen;
+    }
 
-    // Merge touch joystick (no-op on desktop since touchJoystick stays {0,0})
+    // Joystick: analog [-1,1] per axis — merge then clamp total magnitude to 1
     dx += touchJoystick.dx;
     dz += touchJoystick.dz;
-
-    // Normalize diagonal
-    if (dx !== 0 && dz !== 0) {
-      const len = Math.sqrt(dx * dx + dz * dz);
-      dx /= len;
-      dz /= len;
-    }
+    const mag = Math.sqrt(dx * dx + dz * dz);
+    if (mag > 1) { dx /= mag; dz /= mag; }
 
     // Rotate movement to be relative to the camera (first-person yaw or orbit yaw)
     let moveX = dx;

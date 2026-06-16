@@ -99,8 +99,8 @@ export class Game {
     playerMesh.position.set(0, 0, 10);
     this.scene.add(playerMesh);
 
-    // Warm point light that follows the player so you can see where you walk
-    this.playerLight = new THREE.PointLight(0xffe0a0, 2.2, 14);
+    // Warm lantern-like light that follows the player
+    this.playerLight = new THREE.PointLight(0xffe0a0, 5.0, 22);
     this.playerLight.position.set(0, 2.5, 10);
     this.scene.add(this.playerLight);
 

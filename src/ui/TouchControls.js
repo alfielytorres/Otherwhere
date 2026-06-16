@@ -7,6 +7,7 @@ export const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoi
 export function initTouchControls() {
   if (!isTouchDevice) return;
 
+  // Inject overrides and control styles
   const style = document.createElement('style');
   style.textContent = `
     #hud-controls { display: none !important; }
@@ -19,82 +20,88 @@ export function initTouchControls() {
       min-width: 170px !important;
     }
     #hud-interaction-prompt {
-      bottom: 200px !important;
+      bottom: 195px !important;
     }
-    #touch-joystick-zone {
+
+    /* --- Joystick --- */
+    #tc-joy-zone {
       position: fixed;
-      bottom: 20px;
-      left: 20px;
-      width: 120px;
-      height: 120px;
-      z-index: 200;
+      bottom: 22px;
+      left: 22px;
+      width: 128px;
+      height: 128px;
+      z-index: 300;
       touch-action: none;
+      user-select: none;
     }
-    #touch-joystick-base {
+    #tc-joy-base {
       position: absolute;
       inset: 0;
       border-radius: 50%;
-      background: rgba(255,255,255,0.07);
-      border: 2px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.2);
     }
-    #touch-joystick-thumb {
+    #tc-joy-thumb {
       position: absolute;
-      width: 46px;
-      height: 46px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
-      background: rgba(252,209,22,0.72);
-      border: 2px solid rgba(252,209,22,0.95);
-      top: 37px;
-      left: 37px;
+      background: rgba(252,209,22,0.75);
+      border: 2px solid rgba(252,209,22,1);
+      /* center: (128-52)/2 = 38 */
+      top: 38px;
+      left: 38px;
       pointer-events: none;
+      transition: transform 0.05s;
     }
-    #touch-interact-btn {
+
+    /* --- Interact button --- */
+    #tc-interact {
       position: fixed;
-      bottom: 80px;
-      right: 30px;
-      width: 64px;
-      height: 64px;
+      bottom: 82px;
+      right: 28px;
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
-      background: rgba(0,0,0,0.65);
-      border: 2px solid rgba(252,209,22,0.45);
-      color: rgba(252,209,22,0.5);
+      background: rgba(0,0,0,0.6);
+      border: 2px solid rgba(252,209,22,0.35);
+      color: rgba(252,209,22,0.4);
       font-family: 'Poppins', sans-serif;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 200;
+      z-index: 300;
       touch-action: none;
       user-select: none;
-      pointer-events: auto;
       transition: border-color 0.2s, color 0.2s, background 0.15s;
     }
-    #touch-interact-btn.active-prompt {
+    #tc-interact.lit {
       border-color: #FCD116;
       color: #FCD116;
-      background: rgba(252,209,22,0.15);
+      background: rgba(252,209,22,0.12);
+      box-shadow: 0 0 16px rgba(252,209,22,0.3);
     }
-    #touch-interact-btn:active {
-      background: rgba(252,209,22,0.3);
-    }
-    #touch-exit-btn {
+    #tc-interact:active { background: rgba(252,209,22,0.25); }
+
+    /* --- Exit / ESC button --- */
+    #tc-exit {
       position: fixed;
-      top: 8px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(206,17,38,0.85);
       border: 1px solid #FCD116;
       border-radius: 20px;
-      padding: 9px 24px;
-      color: white;
+      padding: 9px 26px;
+      color: #fff;
       font-family: 'Poppins', sans-serif;
       font-size: 13px;
       font-weight: 600;
-      z-index: 200;
+      z-index: 300;
       touch-action: none;
       user-select: none;
-      pointer-events: auto;
       display: none;
       white-space: nowrap;
       backdrop-filter: blur(4px);
@@ -102,35 +109,73 @@ export function initTouchControls() {
   `;
   document.head.appendChild(style);
 
-  const joystickZone = document.createElement('div');
-  joystickZone.id = 'touch-joystick-zone';
-  const joystickBase = document.createElement('div');
-  joystickBase.id = 'touch-joystick-base';
-  const joystickThumb = document.createElement('div');
-  joystickThumb.id = 'touch-joystick-thumb';
-  joystickBase.appendChild(joystickThumb);
-  joystickZone.appendChild(joystickBase);
-  document.body.appendChild(joystickZone);
+  // --- DOM elements ---
+  const joyZone = _el('div', 'tc-joy-zone');
+  const joyBase = _el('div', 'tc-joy-base');
+  const joyThumb = _el('div', 'tc-joy-thumb');
+  joyBase.appendChild(joyThumb);
+  joyZone.appendChild(joyBase);
+  document.body.appendChild(joyZone);
 
-  const interactBtn = document.createElement('div');
-  interactBtn.id = 'touch-interact-btn';
+  const interactBtn = _el('div', 'tc-interact');
   interactBtn.textContent = 'E';
   document.body.appendChild(interactBtn);
 
-  const exitBtn = document.createElement('div');
-  exitBtn.id = 'touch-exit-btn';
+  const exitBtn = _el('div', 'tc-exit');
   exitBtn.textContent = '← Lumabas';
   document.body.appendChild(exitBtn);
 
-  _setupJoystick(joystickZone, joystickThumb);
-  _setupButtons(interactBtn, exitBtn);
+  // --- Joystick (Pointer Events + setPointerCapture) ---
+  const RADIUS = 38; // half of (128-52) = 38
+  let joyPtr = null;
+  let joyOX = 0, joyOY = 0; // center of zone
 
+  joyZone.addEventListener('pointerdown', (e) => {
+    if (joyPtr !== null) return;
+    e.preventDefault();
+    joyPtr = e.pointerId;
+    joyZone.setPointerCapture(e.pointerId);
+    const r = joyZone.getBoundingClientRect();
+    joyOX = r.left + r.width / 2;
+    joyOY = r.top + r.height / 2;
+    _moveJoy(e.clientX, e.clientY, joyOX, joyOY, RADIUS, joyThumb);
+  });
+
+  joyZone.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== joyPtr) return;
+    e.preventDefault();
+    _moveJoy(e.clientX, e.clientY, joyOX, joyOY, RADIUS, joyThumb);
+  });
+
+  const _joyUp = (e) => {
+    if (e.pointerId !== joyPtr) return;
+    joyPtr = null;
+    touchJoystick.dx = 0;
+    touchJoystick.dz = 0;
+    joyThumb.style.left = '38px';
+    joyThumb.style.top = '38px';
+  };
+  joyZone.addEventListener('pointerup', _joyUp);
+  joyZone.addEventListener('pointercancel', _joyUp);
+
+  // --- Interact button ---
+  interactBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', bubbles: true }));
+    setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE', bubbles: true })), 80);
+  });
+
+  // --- Exit button ---
+  exitBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', bubbles: true }));
+  });
+
+  // --- Event subscriptions ---
   events.on('interaction_prompt', (data) => {
-    if (data.show) {
-      interactBtn.classList.add('active-prompt');
-    } else {
-      interactBtn.classList.remove('active-prompt');
-    }
+    interactBtn.classList.toggle('lit', !!data.show);
   });
 
   events.on('camera_mode_changed', (data) => {
@@ -138,74 +183,22 @@ export function initTouchControls() {
   });
 }
 
-function _setupJoystick(joystickZone, joystickThumb) {
-  const RADIUS = 37;
-  let touchId = null;
-  let centerX = 0;
-  let centerY = 0;
-
-  joystickZone.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (touchId !== null) return;
-    const touch = e.changedTouches[0];
-    touchId = touch.identifier;
-    const rect = joystickZone.getBoundingClientRect();
-    centerX = rect.left + rect.width / 2;
-    centerY = rect.top + rect.height / 2;
-    _applyJoystick(touch.clientX, touch.clientY, centerX, centerY, RADIUS, joystickThumb);
-  }, { passive: false });
-
-  window.addEventListener('touchmove', (e) => {
-    for (const touch of e.changedTouches) {
-      if (touch.identifier === touchId) {
-        e.preventDefault();
-        _applyJoystick(touch.clientX, touch.clientY, centerX, centerY, RADIUS, joystickThumb);
-        break;
-      }
-    }
-  }, { passive: false });
-
-  const _release = (e) => {
-    for (const touch of e.changedTouches) {
-      if (touch.identifier === touchId) {
-        touchId = null;
-        touchJoystick.dx = 0;
-        touchJoystick.dz = 0;
-        joystickThumb.style.left = '37px';
-        joystickThumb.style.top = '37px';
-        break;
-      }
-    }
-  };
-  window.addEventListener('touchend', _release);
-  window.addEventListener('touchcancel', _release);
-}
-
-function _applyJoystick(cx, cy, centerX, centerY, radius, thumb) {
-  let ox = cx - centerX;
-  let oy = cy - centerY;
-  const dist = Math.sqrt(ox * ox + oy * oy);
+function _moveJoy(cx, cy, ox, oy, radius, thumb) {
+  let dx = cx - ox;
+  let dy = cy - oy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
   if (dist > radius) {
-    ox = (ox / dist) * radius;
-    oy = (oy / dist) * radius;
+    dx = (dx / dist) * radius;
+    dy = (dy / dist) * radius;
   }
-  touchJoystick.dx = ox / radius;
-  touchJoystick.dz = oy / radius;
-  thumb.style.left = `${37 + ox}px`;
-  thumb.style.top = `${37 + oy}px`;
+  touchJoystick.dx = dx / radius;
+  touchJoystick.dz = dy / radius;
+  thumb.style.left = `${38 + dx}px`;
+  thumb.style.top = `${38 + dy}px`;
 }
 
-function _setupButtons(interactBtn, exitBtn) {
-  interactBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', bubbles: true }));
-    setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE', bubbles: true })), 80);
-  }, { passive: false });
-
-  exitBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', bubbles: true }));
-  }, { passive: false });
+function _el(tag, id) {
+  const el = document.createElement(tag);
+  el.id = id;
+  return el;
 }
