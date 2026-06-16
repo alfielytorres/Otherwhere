@@ -55,30 +55,48 @@ export class NPCSystem extends System {
           const t = Date.now() * 0.005 + entity.id * 137.5;
           const swing = Math.sin(t * 2.8) * 0.42;
 
-          // Bob
-          meshComp.mesh.position.y = Math.abs(Math.sin(t * 2.8)) * 0.055;
+          if (npc.npcType === 'dog') {
+            // Dog trot animation
+            meshComp.mesh.position.y = Math.abs(Math.sin(t * 5.6)) * 0.03;
+            const legSwing = Math.sin(t * 5.6) * 0.5;
+            const fl = meshComp.mesh.getObjectByName('legFL');
+            const fr = meshComp.mesh.getObjectByName('legFR');
+            const rl = meshComp.mesh.getObjectByName('legRL');
+            const rr = meshComp.mesh.getObjectByName('legRR');
+            const tail = meshComp.mesh.getObjectByName('tail');
+            if (fl) fl.rotation.x =  legSwing;
+            if (fr) fr.rotation.x = -legSwing;
+            if (rl) rl.rotation.x = -legSwing;
+            if (rr) rr.rotation.x =  legSwing;
+            if (tail) tail.rotation.x = Math.sin(t * 8) * 0.3 - 0.4;
+          } else {
+            // Human walk animation
+            meshComp.mesh.position.y = Math.abs(Math.sin(t * 2.8)) * 0.055;
 
-          // Arm swing
-          const lArm = meshComp.mesh.getObjectByName('lArm');
-          const rArm = meshComp.mesh.getObjectByName('rArm');
-          if (lArm) lArm.rotation.x = -swing;
-          if (rArm) rArm.rotation.x =  swing;
+            const lArm = meshComp.mesh.getObjectByName('lArm');
+            const rArm = meshComp.mesh.getObjectByName('rArm');
+            if (lArm) lArm.rotation.x = -swing;
+            if (rArm) rArm.rotation.x =  swing;
 
-          // Leg swing
-          const lLeg = meshComp.mesh.getObjectByName('lLeg');
-          const rLeg = meshComp.mesh.getObjectByName('rLeg');
-          if (lLeg) lLeg.rotation.x =  swing * 0.55;
-          if (rLeg) rLeg.rotation.x = -swing * 0.55;
+            const lLeg = meshComp.mesh.getObjectByName('lLeg');
+            const rLeg = meshComp.mesh.getObjectByName('rLeg');
+            if (lLeg) lLeg.rotation.x =  swing * 0.55;
+            if (rLeg) rLeg.rotation.x = -swing * 0.55;
+          }
         } else {
           // Idle — reset limbs
-          const lArm = meshComp.mesh.getObjectByName('lArm');
-          const rArm = meshComp.mesh.getObjectByName('rArm');
-          const lLeg = meshComp.mesh.getObjectByName('lLeg');
-          const rLeg = meshComp.mesh.getObjectByName('rLeg');
-          if (lArm) lArm.rotation.x = 0;
-          if (rArm) rArm.rotation.x = 0;
-          if (lLeg) lLeg.rotation.x = 0;
-          if (rLeg) rLeg.rotation.x = 0;
+          meshComp.mesh.position.y = 0;
+          if (npc.npcType === 'dog') {
+            ['legFL', 'legFR', 'legRL', 'legRR'].forEach(n => {
+              const m = meshComp.mesh.getObjectByName(n);
+              if (m) m.rotation.x = 0;
+            });
+          } else {
+            ['lArm', 'rArm', 'lLeg', 'rLeg'].forEach(n => {
+              const m = meshComp.mesh.getObjectByName(n);
+              if (m) m.rotation.x = 0;
+            });
+          }
         }
       }
     }
