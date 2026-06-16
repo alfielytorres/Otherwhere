@@ -36,31 +36,43 @@ export function initHUD(eventsInstance) {
   // Inject styles
   const style = document.createElement('style');
   style.textContent = `
+    /* Glass mixin shared values */
+    :root {
+      --glass-bg: rgba(6, 10, 26, 0.38);
+      --glass-blur: blur(18px) saturate(160%);
+      --glass-border: rgba(255,255,255,0.07);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
     #hud-player-panel {
       position: fixed;
       bottom: 20px;
       left: 20px;
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(252,209,22,0.4);
-      border-radius: 12px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
       padding: 14px 18px;
       color: white;
       font-family: 'Poppins', sans-serif;
       min-width: 220px;
       pointer-events: none;
-      backdrop-filter: blur(4px);
+      box-shadow: var(--glass-shadow);
     }
     #hud-player-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: #FCD116;
+      letter-spacing: 0.04em;
       margin-bottom: 2px;
     }
     #hud-money {
-      font-size: 13px;
-      color: #4CAF50;
+      font-size: 12px;
+      color: #4ade80;
       margin-bottom: 10px;
       font-weight: 600;
+      letter-spacing: 0.02em;
     }
     .need-row {
       display: flex;
@@ -68,21 +80,15 @@ export function initHUD(eventsInstance) {
       margin-bottom: 5px;
       gap: 6px;
     }
-    .need-emoji {
-      font-size: 12px;
-      width: 16px;
-    }
-    .need-label {
-      font-size: 10px;
-      width: 62px;
-      color: rgba(255,255,255,0.8);
-    }
+    .need-emoji { font-size: 12px; width: 16px; }
+    .need-label { font-size: 10px; width: 62px; color: rgba(255,255,255,0.75); }
     .need-bar-bg {
       flex: 1;
-      height: 8px;
-      background: rgba(255,255,255,0.15);
+      height: 6px;
+      background: rgba(255,255,255,0.08);
       border-radius: 4px;
       overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
     }
     .need-bar-fill {
       height: 100%;
@@ -91,85 +97,100 @@ export function initHUD(eventsInstance) {
     }
     .need-value {
       font-size: 10px;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255,255,255,0.5);
       width: 28px;
       text-align: right;
     }
     #hud-mood {
-      font-size: 18px;
+      font-size: 17px;
       text-align: center;
       margin-top: 8px;
+      letter-spacing: 0.05em;
     }
     #hud-time-panel {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(135,206,235,0.3);
-      border-radius: 10px;
-      padding: 10px 16px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 10px 18px;
       color: white;
       font-family: 'Poppins', sans-serif;
       text-align: right;
       pointer-events: none;
-      backdrop-filter: blur(4px);
+      box-shadow: var(--glass-shadow);
     }
     #hud-time {
       font-size: 22px;
       font-weight: 700;
       color: #FCD116;
+      letter-spacing: 0.06em;
     }
     #hud-day {
-      font-size: 11px;
-      color: rgba(255,255,255,0.7);
+      font-size: 10px;
+      color: rgba(255,255,255,0.55);
       margin-top: 2px;
+      letter-spacing: 0.03em;
     }
     #hud-interaction-prompt {
       position: fixed;
       bottom: 80px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.8);
-      border: 1px solid #FCD116;
-      border-radius: 8px;
-      padding: 10px 20px;
+      background: rgba(6,10,28,0.52);
+      backdrop-filter: blur(22px) saturate(160%);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
+      border: 1px solid rgba(252,209,22,0.32);
+      border-radius: 30px;
+      padding: 10px 24px;
       color: #FCD116;
       font-family: 'Poppins', sans-serif;
       font-size: 13px;
+      font-weight: 600;
       text-align: center;
+      white-space: nowrap;
       display: none;
       pointer-events: none;
-      backdrop-filter: blur(4px);
-      animation: promptPulse 1.5s ease-in-out infinite;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(252,209,22,0.08) inset;
+      animation: promptPulse 2s ease-in-out infinite;
     }
     @keyframes promptPulse {
-      0%, 100% { opacity: 0.9; }
-      50% { opacity: 1; border-color: #FF9800; }
+      0%, 100% { opacity: 0.88; box-shadow: 0 4px 24px rgba(0,0,0,0.5); }
+      50% { opacity: 1; box-shadow: 0 4px 28px rgba(0,0,0,0.5), 0 0 12px rgba(252,180,22,0.15); }
     }
     #hud-activity-panel {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(252,209,22,0.4);
-      border-radius: 10px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
       padding: 12px 16px;
       color: white;
       font-family: 'Poppins', sans-serif;
       min-width: 180px;
       display: none;
       pointer-events: none;
+      box-shadow: var(--glass-shadow);
     }
     #hud-activity-label {
       font-size: 12px;
+      font-weight: 600;
       color: #FCD116;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
     }
     #hud-activity-bar-bg {
-      height: 8px;
-      background: rgba(255,255,255,0.15);
+      height: 6px;
+      background: rgba(255,255,255,0.08);
       border-radius: 4px;
       overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
     }
     #hud-activity-bar-fill {
       height: 100%;
@@ -181,31 +202,39 @@ export function initHUD(eventsInstance) {
       position: fixed;
       top: 20px;
       left: 20px;
-      background: rgba(0,0,0,0.6);
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: rgba(255,255,255,0.6);
+      background: rgba(6,10,26,0.3);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 8px 14px;
+      color: rgba(255,255,255,0.45);
       font-family: 'Poppins', sans-serif;
       font-size: 10px;
       pointer-events: none;
-      line-height: 1.6;
+      line-height: 1.8;
+      letter-spacing: 0.03em;
     }
     #hud-notification {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(206,17,38,0.9);
-      border: 2px solid #FCD116;
-      border-radius: 12px;
+      background: rgba(120, 5, 20, 0.45);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border: 1px solid rgba(252,209,22,0.35);
+      border-radius: 16px;
       padding: 16px 28px;
       color: white;
       font-family: 'Poppins', sans-serif;
-      font-size: 15px;
+      font-size: 14px;
+      font-weight: 500;
       text-align: center;
       display: none;
       pointer-events: none;
       z-index: 500;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
     }
   `;
   document.head.appendChild(style);
@@ -348,10 +377,14 @@ export function initHUD(eventsInstance) {
   fpIndicator.textContent = '[ESC] Lumabas  •  [E] Makipag-ugnayan';
   fpIndicator.style.cssText = `
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.7); border: 1px solid rgba(252,209,22,0.5);
-    border-radius: 8px; padding: 8px 16px; color: #FCD116;
-    font-family: 'Poppins', sans-serif; font-size: 12px;
-    display: none; pointer-events: none; z-index: 600; backdrop-filter: blur(4px);
+    background: rgba(6,10,28,0.5); backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(252,209,22,0.3); border-radius: 30px;
+    padding: 9px 22px; color: #FCD116;
+    font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.04em;
+    display: none; pointer-events: none; z-index: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   `;
   document.body.appendChild(fpIndicator);
 

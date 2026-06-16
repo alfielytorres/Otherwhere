@@ -38,21 +38,25 @@ export function initTouchControls() {
       position: absolute;
       inset: 0;
       border-radius: 50%;
-      background: rgba(255,255,255,0.06);
-      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(6,10,26,0.35);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
     }
     #tc-joy-thumb {
       position: absolute;
       width: 52px;
       height: 52px;
       border-radius: 50%;
-      background: rgba(252,209,22,0.75);
-      border: 2px solid rgba(252,209,22,1);
+      background: radial-gradient(circle at 40% 35%, rgba(255,220,60,0.85), rgba(252,150,10,0.7));
+      border: 1.5px solid rgba(252,209,22,0.8);
       /* center: (128-52)/2 = 38 */
       top: 38px;
       left: 38px;
       pointer-events: none;
       transition: transform 0.05s;
+      box-shadow: 0 2px 12px rgba(252,150,10,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
     }
 
     /* --- Interact button --- */
@@ -63,9 +67,11 @@ export function initTouchControls() {
       width: 68px;
       height: 68px;
       border-radius: 50%;
-      background: rgba(0,0,0,0.6);
-      border: 2px solid rgba(252,209,22,0.35);
-      color: rgba(252,209,22,0.4);
+      background: rgba(6,10,26,0.45);
+      backdrop-filter: blur(16px) saturate(150%);
+      -webkit-backdrop-filter: blur(16px) saturate(150%);
+      border: 1.5px solid rgba(252,209,22,0.22);
+      color: rgba(252,209,22,0.35);
       font-family: 'Poppins', sans-serif;
       font-size: 20px;
       font-weight: 700;
@@ -75,15 +81,19 @@ export function initTouchControls() {
       z-index: 300;
       touch-action: none;
       user-select: none;
-      transition: border-color 0.2s, color 0.2s, background 0.15s;
+      transition: border-color 0.2s, color 0.2s, background 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
     }
     #tc-interact.lit {
-      border-color: #FCD116;
+      border-color: rgba(252,209,22,0.7);
       color: #FCD116;
-      background: rgba(252,209,22,0.12);
-      box-shadow: 0 0 16px rgba(252,209,22,0.3);
+      background: rgba(252,209,22,0.1);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 16px rgba(252,180,22,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
     }
-    #tc-interact:active { background: rgba(252,209,22,0.25); }
+    #tc-interact:active {
+      background: rgba(252,209,22,0.18);
+      transform: scale(0.95);
+    }
 
     /* --- Exit / ESC button --- */
     #tc-exit {
@@ -91,20 +101,23 @@ export function initTouchControls() {
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(206,17,38,0.85);
-      border: 1px solid #FCD116;
-      border-radius: 20px;
+      background: rgba(120,5,18,0.42);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border: 1px solid rgba(206,17,38,0.45);
+      border-radius: 30px;
       padding: 9px 26px;
-      color: #fff;
+      color: rgba(255,255,255,0.9);
       font-family: 'Poppins', sans-serif;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
+      letter-spacing: 0.06em;
       z-index: 300;
       touch-action: none;
       user-select: none;
       display: none;
       white-space: nowrap;
-      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
     }
   `;
   document.head.appendChild(style);

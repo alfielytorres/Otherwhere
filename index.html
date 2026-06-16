@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bagong Lupa - A New Life on a New World</title>
+  <title>Otherwhere — Someplace in Manila</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;0,900;1,300;1,400&family=Cinzel:wght@700;900&display=swap" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: #000;
       overflow: hidden;
       font-family: 'Poppins', sans-serif;
+      touch-action: none;
     }
     #game-canvas {
       display: block;
@@ -20,13 +21,190 @@
       height: 100vh;
       touch-action: none;
     }
-    body {
-      touch-action: none;
+
+    /* ── INTRO OVERLAY ─────────────────────────────── */
+    #intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: opacity 0.9s ease;
     }
+    #intro-overlay.fade-out { opacity: 0; pointer-events: none; }
+
+    /* Cinematic letterbox */
+    .lbox {
+      position: absolute;
+      left: 0; right: 0;
+      height: 10vh;
+      background: #000;
+      z-index: 3;
+    }
+    .lbox.top { top: 0; }
+    .lbox.bottom { bottom: 0; }
+
+    /* Atmospheric background */
+    .intro-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 45% at 50% 100%, rgba(255,100,20,0.09) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 30% at 30% 80%, rgba(0,50,160,0.07) 0%, transparent 60%),
+        linear-gradient(180deg, #000 0%, #040a18 55%, #080c20 100%);
+    }
+
+    /* Tiny stars */
+    .intro-stars {
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.55) 0%, transparent 100%),
+        radial-gradient(1px 1px at 28% 12%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 42% 8%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 58% 15%, rgba(255,255,255,0.45) 0%, transparent 100%),
+        radial-gradient(1px 1px at 72% 22%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 9%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1px 1px at 20% 35%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 65% 30%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 35%, rgba(255,255,255,0.25) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 10% 45%, rgba(255,240,200,0.5) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 50% 25%, rgba(255,240,200,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 78% 18%, rgba(255,255,255,0.5) 0%, transparent 100%);
+      animation: twinkle 6s ease-in-out infinite alternate;
+    }
+    @keyframes twinkle {
+      0% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+
+    /* Two moons */
+    .intro-moon {
+      position: absolute;
+      border-radius: 50%;
+    }
+    .intro-moon-a {
+      width: 52px; height: 52px;
+      top: 14%; right: 18%;
+      background: radial-gradient(circle at 38% 32%, #fff9e6, #ffd54f 60%, #ff9800 100%);
+      box-shadow: 0 0 28px rgba(255,200,80,0.5), 0 0 60px rgba(255,160,20,0.2);
+      animation: moonFloat 8s ease-in-out infinite;
+    }
+    .intro-moon-b {
+      width: 34px; height: 34px;
+      top: 20%; right: 23%;
+      background: radial-gradient(circle at 38% 32%, #fff3cd, #ffc107 60%, #ff7043 100%);
+      box-shadow: 0 0 18px rgba(255,180,60,0.4), 0 0 40px rgba(255,120,10,0.15);
+      opacity: 0.8;
+      animation: moonFloat 10s ease-in-out 1s infinite reverse;
+    }
+    @keyframes moonFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    /* City horizon silhouette */
+    .intro-city {
+      position: absolute;
+      bottom: 10vh;
+      left: 0; right: 0;
+      height: 160px;
+      background:
+        linear-gradient(to top, rgba(255,80,0,0.06) 0%, transparent 100%);
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 160'%3E%3Cpath fill='%23000' d='M0,160 L0,100 L40,100 L40,80 L60,80 L60,60 L80,60 L80,100 L120,100 L120,70 L140,70 L140,50 L150,50 L150,40 L160,40 L160,50 L170,50 L170,70 L200,70 L200,100 L230,100 L230,80 L250,80 L250,90 L270,90 L270,75 L290,75 L290,60 L310,60 L310,40 L320,40 L320,30 L330,30 L330,40 L340,40 L340,60 L360,60 L360,100 L400,100 L400,85 L420,85 L420,65 L440,65 L440,85 L460,85 L460,95 L490,95 L490,75 L510,75 L510,55 L520,55 L520,45 L530,45 L530,55 L540,55 L540,75 L560,75 L560,100 L600,100 L600,80 L620,80 L620,60 L640,60 L640,45 L660,45 L660,60 L680,60 L680,80 L700,80 L700,90 L720,90 L720,70 L740,70 L740,55 L750,55 L750,45 L760,45 L760,55 L770,55 L770,70 L790,70 L790,100 L830,100 L830,80 L850,80 L850,65 L870,65 L870,80 L890,80 L890,100 L920,100 L920,85 L940,85 L940,70 L960,70 L960,85 L980,85 L980,95 L1010,95 L1010,75 L1040,75 L1040,55 L1055,55 L1055,45 L1065,45 L1065,55 L1080,55 L1080,75 L1110,75 L1110,100 L1150,100 L1150,80 L1170,80 L1170,100 L1200,100 L1200,160 Z'/%3E%3C/svg%3E");
+      mask-size: 100% 100%;
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 160'%3E%3Cpath fill='%23000' d='M0,160 L0,100 L40,100 L40,80 L60,80 L60,60 L80,60 L80,100 L120,100 L120,70 L140,70 L140,50 L150,50 L150,40 L160,40 L160,50 L170,50 L170,70 L200,70 L200,100 L230,100 L230,80 L250,80 L250,90 L270,90 L270,75 L290,75 L290,60 L310,60 L310,40 L320,40 L320,30 L330,30 L330,40 L340,40 L340,60 L360,60 L360,100 L400,100 L400,85 L420,85 L420,65 L440,65 L440,85 L460,85 L460,95 L490,95 L490,75 L510,75 L510,55 L520,55 L520,45 L530,45 L530,55 L540,55 L540,75 L560,75 L560,100 L600,100 L600,80 L620,80 L620,60 L640,60 L640,45 L660,45 L660,60 L680,60 L680,80 L700,80 L700,90 L720,90 L720,70 L740,70 L740,55 L750,55 L750,45 L760,45 L760,55 L770,55 L770,70 L790,70 L790,100 L830,100 L830,80 L850,80 L850,65 L870,65 L870,80 L890,80 L890,100 L920,100 L920,85 L940,85 L940,70 L960,70 L960,85 L980,85 L980,95 L1010,95 L1010,75 L1040,75 L1040,55 L1055,55 L1055,45 L1065,45 L1065,55 L1080,55 L1080,75 L1110,75 L1110,100 L1150,100 L1150,80 L1170,80 L1170,100 L1200,100 L1200,160 Z'/%3E%3C/svg%3E");
+      -webkit-mask-size: 100% 100%;
+    }
+
+    /* Logo block */
+    .intro-logo-wrap {
+      position: relative;
+      text-align: center;
+      z-index: 2;
+    }
+
+    /* "OTHERWHERE" title — Netflix-style slam */
+    .intro-title {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(48px, 9vw, 96px);
+      font-weight: 900;
+      letter-spacing: 0.22em;
+      color: #fff;
+      text-shadow:
+        0 0 40px rgba(255,255,255,0.25),
+        0 0 80px rgba(252,180,30,0.12),
+        0 2px 4px rgba(0,0,0,0.8);
+      position: relative;
+      opacity: 0;
+      animation: titleSlam 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
+    }
+
+    /* Subtle golden underline that draws itself */
+    .intro-title::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      width: 0;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, rgba(252,209,22,0.6), transparent);
+      transform: translateX(-50%);
+      animation: underlineDraw 0.8s ease 1.3s forwards;
+    }
+    @keyframes underlineDraw {
+      to { width: 100%; }
+    }
+
+    /* Light sweep that passes over the title */
+    .intro-sweep {
+      position: absolute;
+      top: -20px;
+      left: -80%;
+      width: 60%;
+      height: calc(100% + 40px);
+      background: linear-gradient(90deg, transparent 0%, rgba(255,240,180,0.18) 50%, transparent 100%);
+      pointer-events: none;
+      animation: sweepPass 1s ease 1.0s both;
+    }
+    @keyframes sweepPass {
+      0% { left: -80%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { left: 160%; opacity: 0; }
+    }
+
+    .intro-sub {
+      font-family: 'Poppins', sans-serif;
+      font-size: clamp(13px, 2.2vw, 18px);
+      font-weight: 300;
+      font-style: italic;
+      letter-spacing: 0.35em;
+      color: rgba(135, 200, 235, 0.85);
+      margin-top: 16px;
+      opacity: 0;
+      animation: subFadeUp 0.9s ease 1.7s forwards;
+    }
+
+    @keyframes titleSlam {
+      0%   { opacity: 0; transform: scale(1.18); filter: blur(6px) brightness(2.5); }
+      35%  { opacity: 1; filter: blur(0) brightness(1.6); }
+      70%  { filter: blur(0) brightness(1.05); }
+      100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
+    }
+    @keyframes subFadeUp {
+      0%   { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── LOADING OVERLAY ────────────────────────────── */
     #loading-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(135deg, #0a0a2e 0%, #1a0a3e 50%, #0a1a2e 100%);
+      inset: 0;
+      background: linear-gradient(135deg, #050b1a 0%, #0a0d20 50%, #060b18 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -38,99 +216,129 @@
       opacity: 0;
       pointer-events: none;
     }
-    .loading-title {
-      font-size: 64px;
-      font-weight: 900;
-      color: #FCD116;
-      text-shadow: 0 0 30px rgba(252, 209, 22, 0.8), 0 0 60px rgba(252, 209, 22, 0.4);
-      letter-spacing: 8px;
-      margin-bottom: 8px;
+
+    /* Glassmorphic card behind loading content */
+    .loading-glass-card {
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 24px;
+      padding: 40px 56px;
+      text-align: center;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
     }
-    .loading-subtitle {
-      font-size: 18px;
-      font-weight: 300;
-      color: #87CEEB;
-      letter-spacing: 4px;
+    .loading-wordmark {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(30px, 6vw, 52px);
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(255,255,255,0.2), 0 0 60px rgba(252,180,30,0.1);
       margin-bottom: 4px;
     }
-    .loading-tagline {
-      font-size: 14px;
+    .loading-sub {
+      font-size: 12px;
       font-weight: 300;
-      color: rgba(255,255,255,0.5);
-      letter-spacing: 2px;
-      margin-bottom: 40px;
+      font-style: italic;
+      letter-spacing: 0.3em;
+      color: rgba(135,200,235,0.7);
+      margin-bottom: 32px;
     }
-    .loading-bar-container {
-      width: 300px;
-      height: 4px;
-      background: rgba(255,255,255,0.1);
+    .loading-bar-wrap {
+      width: 240px;
+      height: 2px;
+      background: rgba(255,255,255,0.08);
       border-radius: 2px;
       overflow: hidden;
+      margin: 0 auto 14px;
     }
-    .loading-bar {
+    .loading-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #FCD116, #CE1126);
+      background: linear-gradient(90deg, rgba(252,209,22,0.6), rgba(206,17,38,0.5));
       border-radius: 2px;
-      animation: loadingAnim 2s ease-in-out infinite;
+      animation: loadPulse 1.8s ease-in-out infinite;
     }
-    @keyframes loadingAnim {
-      0% { width: 0%; }
-      50% { width: 70%; }
-      100% { width: 100%; }
+    @keyframes loadPulse {
+      0%   { width: 0%; opacity: 1; }
+      70%  { width: 85%; opacity: 1; }
+      100% { width: 100%; opacity: 0.4; }
     }
-    .loading-text {
-      margin-top: 16px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.4);
-      letter-spacing: 2px;
+    .loading-hint {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.25);
     }
-    .two-moons {
-      position: absolute;
-      top: 60px;
-      right: 120px;
-    }
-    .moon {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #fff9c4, #ffd54f);
-      box-shadow: 0 0 20px rgba(255, 213, 79, 0.6);
-      position: absolute;
-    }
-    .moon-1 { top: 0; right: 0; }
-    .moon-2 { top: 25px; right: 50px; width: 28px; height: 28px; opacity: 0.8; }
 
+    .load-moons {
+      position: absolute;
+      top: 48px; right: 80px;
+    }
+    .lmoon {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 36% 34%, #fffde7, #ffd54f 55%, #ff8a00 100%);
+    }
+    .lmoon-a { width: 36px; height: 36px; top: 0; right: 0; box-shadow: 0 0 20px rgba(255,190,60,0.5); }
+    .lmoon-b { width: 24px; height: 24px; top: 22px; right: 42px; opacity: 0.75; box-shadow: 0 0 14px rgba(255,160,40,0.4); }
+
+    /* HUD overlay container */
     #hud-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      inset: 0;
       pointer-events: none;
       z-index: 100;
       display: none;
     }
-    #hud-overlay.visible {
-      display: block;
-    }
+    #hud-overlay.visible { display: block; }
   </style>
 </head>
 <body>
   <canvas id="game-canvas"></canvas>
 
+  <!-- ── NETFLIX-STYLE INTRO ── -->
+  <div id="intro-overlay">
+    <div class="lbox top"></div>
+    <div class="lbox bottom"></div>
+    <div class="intro-bg"></div>
+    <div class="intro-stars"></div>
+    <div class="intro-moon intro-moon-a"></div>
+    <div class="intro-moon intro-moon-b"></div>
+    <div class="intro-city"></div>
+    <div class="intro-logo-wrap">
+      <div class="intro-sweep"></div>
+      <div class="intro-title">OTHERWHERE</div>
+      <div class="intro-sub">...someplace in manila</div>
+    </div>
+  </div>
+
+  <!-- ── LOADING SCREEN ── -->
   <div id="loading-overlay">
-    <div class="two-moons">
-      <div class="moon moon-1"></div>
-      <div class="moon moon-2"></div>
+    <div class="load-moons">
+      <div class="lmoon lmoon-a"></div>
+      <div class="lmoon lmoon-b"></div>
     </div>
-    <div class="loading-title">BAGONG LUPA</div>
-    <div class="loading-subtitle">BAGONG BUHAY SA BAGONG MUNDO</div>
-    <div class="loading-tagline">A New Life on a New World</div>
-    <div class="loading-bar-container">
-      <div class="loading-bar"></div>
+    <div class="loading-glass-card">
+      <div class="loading-wordmark">OTHERWHERE</div>
+      <div class="loading-sub">...someplace in manila</div>
+      <div class="loading-bar-wrap">
+        <div class="loading-bar-fill"></div>
+      </div>
+      <div class="loading-hint">NAGLO-LOAD ANG LUNGSOD...</div>
     </div>
-    <div class="loading-text">Nag-iinitialize ang mundo...</div>
   </div>
 
   <div id="hud-overlay"></div>
 
   <script type="module" src="/src/main.js"></script>
+  <script>
+    // Intro → Loading transition
+    const intro = document.getElementById('intro-overlay');
+    // Fade out after 3.6s (title appears at 0.7s, sub at 1.7s, hold, then fade)
+    setTimeout(() => {
+      intro.classList.add('fade-out');
+      setTimeout(() => intro.remove(), 1000);
+    }, 3600);
+  </script>
 </body>
 </html>

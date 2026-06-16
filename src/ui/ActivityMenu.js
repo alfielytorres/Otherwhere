@@ -13,28 +13,31 @@ export function initActivityMenu(eventsInstance) {
     #activity-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 10, 0.85);
+      background: rgba(0,0,8,0.6);
+      backdrop-filter: blur(12px) saturate(120%);
+      -webkit-backdrop-filter: blur(12px) saturate(120%);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 900;
       font-family: 'Poppins', sans-serif;
-      backdrop-filter: blur(6px);
     }
     #activity-overlay.open {
       display: flex;
     }
     #activity-modal {
-      background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%);
-      border: 2px solid #FCD116;
-      border-radius: 16px;
+      background: rgba(6, 10, 28, 0.58);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(252,209,22,0.22);
+      border-radius: 22px;
       padding: 28px;
       width: 90%;
       max-width: 560px;
       max-height: 85vh;
       overflow-y: auto;
       position: relative;
-      box-shadow: 0 0 40px rgba(252, 209, 22, 0.3);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 40px rgba(252,180,22,0.06);
       color: white;
     }
     #activity-modal::-webkit-scrollbar {
@@ -51,22 +54,25 @@ export function initActivityMenu(eventsInstance) {
       position: absolute;
       top: 14px;
       right: 16px;
-      background: rgba(206,17,38,0.8);
-      border: none;
-      color: white;
-      font-size: 18px;
-      width: 32px;
-      height: 32px;
+      background: rgba(206,17,38,0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(206,17,38,0.4);
+      color: rgba(255,255,255,0.85);
+      font-size: 16px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Poppins', sans-serif;
-      transition: background 0.2s;
+      transition: background 0.2s, border-color 0.2s;
     }
     #activity-close-btn:hover {
-      background: #CE1126;
+      background: rgba(206,17,38,0.7);
+      border-color: #CE1126;
     }
     #activity-building-name {
       font-size: 20px;
@@ -91,21 +97,24 @@ export function initActivityMenu(eventsInstance) {
       }
     }
     .activity-btn {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(252,209,22,0.25);
-      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
       padding: 14px 10px;
       cursor: pointer;
       color: white;
       text-align: center;
       transition: all 0.2s;
       font-family: 'Poppins', sans-serif;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
     .activity-btn:hover {
-      background: rgba(252,209,22,0.15);
-      border-color: #FCD116;
+      background: rgba(252,209,22,0.1);
+      border-color: rgba(252,209,22,0.4);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(252,209,22,0.2);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 12px rgba(252,180,22,0.12);
     }
     .activity-btn:active {
       transform: translateY(0);
