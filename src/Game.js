@@ -23,6 +23,7 @@ import { initHUD, updateHUD } from './ui/HUD.js';
 import { initActivityMenu } from './ui/ActivityMenu.js';
 import { initTouchControls } from './ui/TouchControls.js';
 import { createInteriors } from './world/BuildingInteriors.js';
+import { MixamoCharacter } from './world/MixamoCharacter.js';
 import { BUILDINGS, NPC_NAMES, NPC_DIALOGUES, ACTIVITIES } from './data/GameData.js';
 
 export class Game {
@@ -40,6 +41,7 @@ export class Game {
     this.neonLights = [];
     this.rain = null;
     this.trafficSystem = null;
+    this.mixamoPlayer = null;
   }
 
   start() {
@@ -55,6 +57,10 @@ export class Game {
     this._initEvents();
     this._initPostProcessing();
 
+    // Try Mixamo — falls back silently to procedural if files aren't present
+    this.ecsWorld.mixamoLoaded = false;
+    this._loadMixamoPlayer();
+
     setTimeout(() => {
       const loadingOverlay = document.getElementById('loading-overlay');
       if (loadingOverlay) loadingOverlay.classList.add('hidden');
@@ -62,6 +68,18 @@ export class Game {
 
     this.running = true;
     requestAnimationFrame((t) => this._loop(t));
+  }
+
+  async _loadMixamoPlayer() {
+    const mx = new MixamoCharacter();
+    const ok = await mx.load(this.scene, 0, 10);
+    if (ok) {
+      this.mixamoPlayer = mx;
+      // Hide the procedural player mesh (kept alive as rotation proxy for MovementSystem)
+      const meshComp = this.playerEntity.get(MeshComp);
+      if (meshComp?.mesh) meshComp.mesh.visible = false;
+      this.ecsWorld.mixamoLoaded = true;
+    }
   }
 
   _initRenderer() {
@@ -527,16 +545,38 @@ export class Game {
       }
     }
 
-    // Activity pose + floating badge
+    // Mixamo character — sync position/rotation and drive animation state
+    if (this.mixamoPlayer && this.ecsWorld.mixamoLoaded) {
+      const transform  = this.playerEntity.get(TransformComp);
+      const velocity   = this.playerEntity.get(VelocityComp);
+      const playerComp = this.playerEntity.get(PlayerComp);
+      const meshComp   = this.playerEntity.get(MeshComp);
+
+      this.mixamoPlayer.syncTo(transform.x, transform.y, transform.z, meshComp.mesh.rotation.y);
+
+      if (playerComp.currentActivity) {
+        this.mixamoPlayer.playActivity(playerComp.currentActivity);
+      } else {
+        const spd = Math.sqrt(velocity.vx * velocity.vx + velocity.vz * velocity.vz);
+        this.mixamoPlayer.setMovementClip(spd);
+      }
+
+      this.mixamoPlayer.update(delta);
+    }
+
+    // Activity pose + floating badge (procedural fallback + badge for both modes)
     if (this.playerEntity) {
       const playerComp = this.playerEntity.get(PlayerComp);
       const meshComp   = this.playerEntity.get(MeshComp);
       const transform  = this.playerEntity.get(TransformComp);
 
-      if (playerComp.currentActivity && meshComp && meshComp.mesh) {
-        this._applyActivityPose(meshComp.mesh, playerComp.currentActivity, timestamp);
+      if (playerComp.currentActivity) {
+        // Procedural pose only when Mixamo isn't loaded
+        if (!this.ecsWorld.mixamoLoaded && meshComp?.mesh) {
+          this._applyActivityPose(meshComp.mesh, playerComp.currentActivity, timestamp);
+        }
 
-        // Floating badge above player's head in screen space
+        // Floating badge (world-space, shown for both Mixamo and procedural)
         if (this._actBadge && transform) {
           const actData = ACTIVITIES[playerComp.currentActivity];
           const headPos = new THREE.Vector3(transform.x, transform.y + 2.6, transform.z);
@@ -554,8 +594,11 @@ export class Game {
         this._wasDoingActivity = true;
       } else {
         if (this._actBadge) this._actBadge.style.display = 'none';
-        if (this._wasDoingActivity && meshComp && meshComp.mesh) {
+        if (this._wasDoingActivity && !this.ecsWorld.mixamoLoaded && meshComp?.mesh) {
           this._resetActivityPose(meshComp.mesh);
+          this._wasDoingActivity = false;
+        }
+        if (this._wasDoingActivity && this.ecsWorld.mixamoLoaded) {
           this._wasDoingActivity = false;
         }
       }

@@ -78,7 +78,7 @@ export class MovementSystem extends System {
       const b = player.interiorBounds;
       transform.x = Math.max(b.minX, Math.min(b.maxX, newX));
       transform.z = Math.max(b.minZ, Math.min(b.maxZ, newZ));
-      this._updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta);
+      this._updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta, world);
       return;
     }
 
@@ -120,38 +120,31 @@ export class MovementSystem extends System {
     transform.x = finalX;
     transform.z = finalZ;
 
-    this._updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta);
+    this._updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta, world);
   }
 
-  _updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta) {
+  _updateMesh(meshComp, transform, moveX, moveZ, dx, dz, delta, world) {
     if (!meshComp.mesh) return;
 
-    // Update mesh (only animate when visible in third/orbit person)
-    if (meshComp.mesh.visible) {
-      meshComp.mesh.position.set(transform.x, transform.y, transform.z);
+    // Always sync position
+    meshComp.mesh.position.set(transform.x, transform.y, transform.z);
 
-      // Rotation
-      if (moveX !== 0 || moveZ !== 0) {
-        this.targetRotY = Math.atan2(moveX, moveZ);
-      }
+    // Always lerp rotation (Mixamo reads this even when procedural mesh is hidden)
+    if (moveX !== 0 || moveZ !== 0) {
+      this.targetRotY = Math.atan2(moveX, moveZ);
+    }
+    const currentRotY = meshComp.mesh.rotation.y;
+    let diff = this.targetRotY - currentRotY;
+    while (diff > Math.PI) diff -= 2 * Math.PI;
+    while (diff < -Math.PI) diff += 2 * Math.PI;
+    meshComp.mesh.rotation.y = currentRotY + diff * Math.min(1, delta * 12);
 
-      // Lerp rotation
-      const currentRotY = meshComp.mesh.rotation.y;
-      let diff = this.targetRotY - currentRotY;
-      while (diff > Math.PI) diff -= 2 * Math.PI;
-      while (diff < -Math.PI) diff += 2 * Math.PI;
-      meshComp.mesh.rotation.y = currentRotY + diff * Math.min(1, delta * 12);
-
-      // Simple walking animation
+    // Procedural walk bob — skip when Mixamo handles animation
+    if (!world.mixamoLoaded) {
       if (dx !== 0 || dz !== 0) {
         const t = Date.now() * 0.005;
         meshComp.mesh.position.y = transform.y + Math.abs(Math.sin(t * 3)) * 0.08;
-      } else {
-        meshComp.mesh.position.y = transform.y;
       }
-    } else {
-      // Keep transform in sync even when mesh hidden (first-person)
-      meshComp.mesh.position.set(transform.x, transform.y, transform.z);
     }
   }
 
