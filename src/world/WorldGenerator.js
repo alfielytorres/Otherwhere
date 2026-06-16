@@ -73,25 +73,39 @@ function createLampInstances(scene, lampPositions) {
 
 // ---- Neon sign panel above a building's door ----
 function createNeonSign(scene, bdata) {
-  if (!bdata.neonSign) return;
+  if (!bdata.neonSign) return null;
   const w = Math.min(bdata.width * 0.7, 7);
-  const sign = new THREE.Mesh(
-    new THREE.BoxGeometry(w, 1.4, 0.3),
-    emissiveMat(bdata.neonSign.color, 1.8)
-  );
-  // Position above the door on the +Z facing side
+  const signMat = emissiveMat(bdata.neonSign.color, 1.8);
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(w, 1.4, 0.3), signMat);
   sign.position.set(bdata.x, Math.min(bdata.height, 6) + 0.5, bdata.z + bdata.depth / 2 + 0.4);
   scene.add(sign);
 
-  // Backing board
   const board = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 1.8, 0.2), stdMat(0x111111));
   board.position.set(bdata.x, Math.min(bdata.height, 6) + 0.5, bdata.z + bdata.depth / 2 + 0.25);
   scene.add(board);
 
-  // A subtle colored point light to spill neon onto the street
   const glow = new THREE.PointLight(bdata.neonSign.color, 0.8, 16);
   glow.position.set(bdata.x, Math.min(bdata.height, 6) + 0.5, bdata.z + bdata.depth / 2 + 2);
   scene.add(glow);
+
+  return { light: glow, mat: signMat };
+}
+
+export function createRainSystem(scene) {
+  const count = 4500;
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3]     = (Math.random() - 0.5) * 260;
+    pos[i * 3 + 1] = Math.random() * 55;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 260;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const rain = new THREE.Points(geo, new THREE.PointsMaterial({
+    color: 0x99aacc, size: 0.09, transparent: true, opacity: 0.48, sizeAttenuation: true
+  }));
+  scene.add(rain);
+  return rain;
 }
 
 function createBuilding(scene, bdata) {
@@ -380,10 +394,12 @@ export function generateWorld(scene) {
 
   // Buildings + neon signs
   const buildingMeshObjects = [];
+  const neonLights = [];
   for (const bdata of BUILDINGS) {
     const result = createBuilding(scene, bdata);
     buildingMeshObjects.push(result);
-    createNeonSign(scene, bdata);
+    const neon = createNeonSign(scene, bdata);
+    if (neon) neonLights.push(neon);
   }
 
   // Trees
@@ -459,5 +475,5 @@ export function generateWorld(scene) {
     scene.add(facadeLight);
   }
 
-  return { water, buildingMeshObjects, ambientLight, sunLight };
+  return { water, buildingMeshObjects, ambientLight, sunLight, neonLights };
 }

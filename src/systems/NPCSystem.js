@@ -51,10 +51,34 @@ export class NPCSystem extends System {
         meshComp.mesh.position.set(transform.x, transform.y, transform.z);
         meshComp.mesh.rotation.y = transform.rotY;
 
-        // Simple walking bob
         if (dist >= 1.0) {
-          const t = Date.now() * 0.005 + entity.id;
-          meshComp.mesh.position.y = Math.abs(Math.sin(t * 3)) * 0.06;
+          const t = Date.now() * 0.005 + entity.id * 137.5;
+          const swing = Math.sin(t * 2.8) * 0.42;
+
+          // Bob
+          meshComp.mesh.position.y = Math.abs(Math.sin(t * 2.8)) * 0.055;
+
+          // Arm swing
+          const lArm = meshComp.mesh.getObjectByName('lArm');
+          const rArm = meshComp.mesh.getObjectByName('rArm');
+          if (lArm) lArm.rotation.x = -swing;
+          if (rArm) rArm.rotation.x =  swing;
+
+          // Leg swing
+          const lLeg = meshComp.mesh.getObjectByName('lLeg');
+          const rLeg = meshComp.mesh.getObjectByName('rLeg');
+          if (lLeg) lLeg.rotation.x =  swing * 0.55;
+          if (rLeg) rLeg.rotation.x = -swing * 0.55;
+        } else {
+          // Idle — reset limbs
+          const lArm = meshComp.mesh.getObjectByName('lArm');
+          const rArm = meshComp.mesh.getObjectByName('rArm');
+          const lLeg = meshComp.mesh.getObjectByName('lLeg');
+          const rLeg = meshComp.mesh.getObjectByName('rLeg');
+          if (lArm) lArm.rotation.x = 0;
+          if (rArm) rArm.rotation.x = 0;
+          if (lLeg) lLeg.rotation.x = 0;
+          if (rLeg) rLeg.rotation.x = 0;
         }
       }
     }

@@ -9,13 +9,15 @@ import {
   TransformComp, VelocityComp, MeshComp,
   PlayerComp, NeedsComp, NPCComp, BuildingComp
 } from './components/Components.js';
-import { generateWorld } from './world/WorldGenerator.js';
+import { generateWorld, createRainSystem } from './world/WorldGenerator.js';
 import { createPlayer, createNPC } from './world/CharacterFactory.js';
+import { createCar, createJeepney, createDog } from './world/VehicleFactory.js';
 import { MovementSystem } from './systems/MovementSystem.js';
 import { CameraSystem } from './systems/CameraSystem.js';
 import { NeedsSystem } from './systems/NeedsSystem.js';
 import { TimeSystem } from './systems/TimeSystem.js';
 import { NPCSystem } from './systems/NPCSystem.js';
+import { TrafficSystem } from './systems/TrafficSystem.js';
 import { InteractionSystem } from './systems/InteractionSystem.js';
 import { initHUD, updateHUD } from './ui/HUD.js';
 import { initActivityMenu } from './ui/ActivityMenu.js';
@@ -35,6 +37,9 @@ export class Game {
     this.scene = null;
     this.renderer = null;
     this.camera = null;
+    this.neonLights = [];
+    this.rain = null;
+    this.trafficSystem = null;
   }
 
   start() {
@@ -45,11 +50,11 @@ export class Game {
     this._initNPCs();
     this._initBuildings();
     this._initSystems();
+    this._initTraffic();
     this._initUI();
     this._initEvents();
     this._initPostProcessing();
 
-    // Hide loading screen
     setTimeout(() => {
       const loadingOverlay = document.getElementById('loading-overlay');
       if (loadingOverlay) loadingOverlay.classList.add('hidden');
@@ -60,40 +65,32 @@ export class Game {
   }
 
   _initRenderer() {
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      antialias: false
-    });
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.8;
-
     window.addEventListener('resize', () => this._onResize());
   }
 
   _initScene() {
     this.scene = new THREE.Scene();
-    // Manila night — lighter fog so you can see buildings at distance
     this.scene.fog = new THREE.FogExp2(0x0d1a2e, 0.004);
     this.scene.background = new THREE.Color(0x0d1a2e);
 
-    this.camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      3000
-    );
+    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
     this.camera.position.set(0, 16, 22);
     this.camera.lookAt(0, 0, 0);
 
-    // Generate the world
     const worldResult = generateWorld(this.scene);
     this.water = worldResult.water;
     this.ambientLight = worldResult.ambientLight;
     this.sunLight = worldResult.sunLight;
+    this.neonLights = worldResult.neonLights || [];
+
+    this.rain = createRainSystem(this.scene);
   }
 
   _initWorld() {
@@ -105,7 +102,6 @@ export class Game {
     playerMesh.position.set(0, 0, 10);
     this.scene.add(playerMesh);
 
-    // Warm lantern-like light that follows the player
     this.playerLight = new THREE.PointLight(0xffe0a0, 5.0, 22);
     this.playerLight.position.set(0, 2.5, 10);
     this.scene.add(this.playerLight);
@@ -120,19 +116,16 @@ export class Game {
   }
 
   _initNPCs() {
-    const npcStartPositions = [
+    const npcPositions = [
       [-30, -50], [40, -60], [70, -80], [80, -40], [50, -20],
-      [-50, -30], [-70, 0], [-80, 50], [-40, 60], [-20, 80],
-      [20, 70], [50, 50], [80, 70], [30, -20], [-20, 30],
-      [100, -20], [-100, 20], [0, -70], [60, 30], [-30, 100]
+      [-50, -30], [-70, 0],  [-80, 50], [-40, 60], [-20, 80],
+      [20, 70],   [50, 50],  [80, 70],  [30, -20], [-20, 30]
     ];
 
-    for (let i = 0; i < Math.min(NPC_NAMES.length, 8); i++) {
+    // All 15 named NPCs
+    for (let i = 0; i < NPC_NAMES.length; i++) {
       const name = NPC_NAMES[i];
-      const pos = npcStartPositions[i] || [
-        (Math.random() - 0.5) * 200,
-        (Math.random() - 0.5) * 200
-      ];
+      const pos = npcPositions[i] || [(Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200];
 
       const npcMesh = createNPC(name);
       npcMesh.position.set(pos[0], 0, pos[1]);
@@ -140,24 +133,33 @@ export class Game {
 
       const npcComp = new NPCComp(name, 'walker');
       npcComp.dialogue = NPC_DIALOGUES[name] || ['Kumusta!'];
-      npcComp.targetX = pos[0] + (Math.random() - 0.5) * 40;
-      npcComp.targetZ = pos[1] + (Math.random() - 0.5) * 40;
+      npcComp.targetX = pos[0] + (Math.random() - 0.5) * 60;
+      npcComp.targetZ = pos[1] + (Math.random() - 0.5) * 60;
 
-      this.ecsWorld.createEntity(
-        new TransformComp(pos[0], 0, pos[1]),
-        new MeshComp(npcMesh),
-        npcComp
-      );
+      this.ecsWorld.createEntity(new TransformComp(pos[0], 0, pos[1]), new MeshComp(npcMesh), npcComp);
+    }
+
+    // 6 stray dogs
+    const dogSpots = [[-15, 20], [35, -15], [-55, 45], [65, 25], [-25, -70], [10, 55]];
+    for (const [dx, dz] of dogSpots) {
+      const dogMesh = createDog();
+      dogMesh.position.set(dx, 0, dz);
+      this.scene.add(dogMesh);
+
+      const dogComp = new NPCComp('dog', 'dog');
+      dogComp.speed = 2 + Math.random() * 2;
+      dogComp.targetX = dx + (Math.random() - 0.5) * 30;
+      dogComp.targetZ = dz + (Math.random() - 0.5) * 30;
+      dogComp.waitTime = Math.random() * 4;
+
+      this.ecsWorld.createEntity(new TransformComp(dx, 0, dz), new MeshComp(dogMesh), dogComp);
     }
   }
 
   _initBuildings() {
     for (const bdata of BUILDINGS) {
-      this.ecsWorld.createEntity(
-        new BuildingComp(bdata)
-      );
+      this.ecsWorld.createEntity(new BuildingComp(bdata));
     }
-    // Build detailed 3D interiors placed far away at world X >= INTERIOR_BASE_X
     this.interiors = createInteriors(this.scene, BUILDINGS);
   }
 
@@ -167,7 +169,6 @@ export class Game {
     const needsSystem = new NeedsSystem();
     this.timeSystem = new TimeSystem(this.scene, this.ambientLight, this.sunLight);
     const npcSystem = new NPCSystem();
-    // Start at 22:00 for the grungy nighttime aesthetic
     this.timeSystem.gameHours = 22;
     this.timeSystem._updateLighting();
     const interactionSystem = new InteractionSystem(this.interiors);
@@ -179,6 +180,31 @@ export class Game {
       .addSystem(this.timeSystem)
       .addSystem(npcSystem)
       .addSystem(interactionSystem);
+  }
+
+  _initTraffic() {
+    this.trafficSystem = new TrafficSystem(this.scene);
+
+    // Cars going east (lane 0)
+    for (const [t, spd] of [[0, 0.048], [0.35, 0.038], [0.7, 0.055]]) {
+      const m = createCar(); this.scene.add(m);
+      this.trafficSystem.addVehicle(m, 0, t, spd);
+    }
+    // Cars going west (lane 1)
+    for (const [t, spd] of [[0.18, 0.042], [0.55, 0.035], [0.82, 0.05]]) {
+      const m = createCar(); this.scene.add(m);
+      this.trafficSystem.addVehicle(m, 1, t, spd);
+    }
+    // Jeepneys going south (lane 2)
+    for (const [t, spd] of [[0, 0.025], [0.52, 0.022]]) {
+      const m = createJeepney(); this.scene.add(m);
+      this.trafficSystem.addVehicle(m, 2, t, spd, 0xffcc88);
+    }
+    // Jeepneys going north (lane 3)
+    for (const [t, spd] of [[0.27, 0.024], [0.74, 0.028]]) {
+      const m = createJeepney(); this.scene.add(m);
+      this.trafficSystem.addVehicle(m, 3, t, spd, 0xffcc88);
+    }
   }
 
   _initUI() {
@@ -196,48 +222,33 @@ export class Game {
       player.isInsideBuilding = true;
       player.currentBuilding = data.building;
 
-      // For outdoor buildings (alley, street food), just open the activity menu directly
       if (data.building.isOutdoor) {
-        events.emit('show_zone_activities', {
-          activityKeys: data.building.activities,
-          building: data.building
-        });
+        events.emit('show_zone_activities', { activityKeys: data.building.activities, building: data.building });
         return;
       }
 
-      // Save exterior position
       player.exteriorX = transform.x;
       player.exteriorZ = transform.z;
 
       const interior = this.interiors.get(data.building.id);
       if (interior) {
-        interior.group.visible = true; // show this interior's geometry
-
-        // Teleport player to interior entry point
+        interior.group.visible = true;
         transform.x = interior.entryPoint.x;
         transform.z = interior.entryPoint.z;
 
+        // Keep mesh visible — stay in 3rd person inside building
         if (meshComp && meshComp.mesh) {
           meshComp.mesh.position.set(transform.x, transform.y, transform.z);
-          meshComp.mesh.visible = false;
+          meshComp.mesh.visible = true;
         }
 
-        // Set interior bounds for movement clamping
         player.interiorBounds = interior.bounds;
-
-        // Disable fog so the interior is clearly visible
         this._savedFog = this.scene.fog;
         this.scene.fog = null;
         this._activeInterior = interior;
-
-        // Switch to first-person, facing into the room (north / -Z => yaw PI)
-        events.emit('enter_firstperson', { facingYaw: Math.PI });
+        // No longer switch to first-person — stay in orbit camera
       } else {
-        // No interior available — fall back to opening menu directly
-        events.emit('show_zone_activities', {
-          activityKeys: data.building.activities,
-          building: data.building
-        });
+        events.emit('show_zone_activities', { activityKeys: data.building.activities, building: data.building });
       }
     });
 
@@ -254,60 +265,37 @@ export class Game {
       player.interiorBounds = null;
 
       if (!wasOutdoor) {
-        // Hide interior geometry
         if (this._activeInterior) {
           this._activeInterior.group.visible = false;
           this._activeInterior = null;
         }
-        // Restore exterior position
         transform.x = player.exteriorX;
         transform.z = player.exteriorZ;
         if (meshComp && meshComp.mesh) {
           meshComp.mesh.position.set(transform.x, transform.y, transform.z);
           meshComp.mesh.visible = true;
         }
-        // Restore fog
         if (this._savedFog !== undefined) {
           this.scene.fog = this._savedFog;
           this._savedFog = undefined;
         }
-        events.emit('exit_firstperson');
+        // No exit_firstperson needed — we stayed in 3rd person
       }
     });
 
     events.on('start_activity', (data) => {
       const player = this.playerEntity.get(PlayerComp);
-      const needs = this.playerEntity.get(NeedsComp);
-
-      // Check if player can afford it
       const cost = data.actData.cost || 0;
       if (cost < 0 && player.money + cost < 0) {
         this._showQuickNotif('⚠️ Walang sapat na pera! (Not enough money!)');
         return;
       }
-
-      // Deduct cost immediately
-      if (cost < 0) {
-        player.money += cost;
-      }
-
-      // Start the activity
+      if (cost < 0) player.money += cost;
       player.currentActivity = data.activityKey;
-      // Duration in game hours * seconds per game hour (60 real seconds per game hour)
-      // But we want activities to feel fast: 1 game hour = 10 real seconds
       const realDuration = data.actData.duration * 10;
       player.activityTimer = realDuration;
       player.activityDuration = realDuration;
-
       this._showQuickNotif(`🎯 Nagsimula: ${data.actData.name}!`);
-    });
-
-    events.on('activity_complete', (data) => {
-      // HUD handles the notification
-    });
-
-    events.on('need_critical', (data) => {
-      // HUD handles the warning
     });
   }
 
@@ -316,16 +304,14 @@ export class Game {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.8,   // strength
-      0.65,  // radius
-      0.12   // threshold — low so neons and stars glow
+      0.8, 0.65, 0.12
     );
     this.composer.addPass(bloom);
     this.composer.addPass(new OutputPass());
   }
 
   _showQuickNotif(msg) {
-    let notif = document.getElementById('hud-notification');
+    const notif = document.getElementById('hud-notification');
     if (!notif) return;
     notif.textContent = msg;
     notif.style.display = 'block';
@@ -339,8 +325,36 @@ export class Game {
     const delta = Math.min((timestamp - this._lastTime) / 1000, 0.1);
     this._lastTime = timestamp;
 
-    // Update ECS
+    // ECS (NPCs, camera, movement, needs, time, interaction)
     this.ecsWorld.update(delta);
+
+    // Traffic
+    if (this.trafficSystem) this.trafficSystem.update(delta, null);
+
+    // Rain — shift particles down, wrap at bottom
+    if (this.rain) {
+      const p = this.rain.geometry.attributes.position.array;
+      for (let i = 0; i < p.length; i += 3) {
+        p[i + 1] -= delta * 30;
+        if (p[i + 1] < 0) {
+          p[i + 1] = 55;
+          p[i]     = (Math.random() - 0.5) * 260;
+          p[i + 2] = (Math.random() - 0.5) * 260;
+        }
+      }
+      this.rain.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // Neon flicker — random voltage drops
+    if (this.neonLights.length) {
+      for (const n of this.neonLights) {
+        if (Math.random() < 0.003) {
+          const off = Math.random() < 0.3;
+          n.light.intensity = off ? 0 : 0.8 + Math.random() * 0.6;
+          n.mat.emissiveIntensity = off ? 0 : 1.4 + Math.random() * 0.8;
+        }
+      }
+    }
 
     // Animate water
     if (this.water) {
@@ -349,20 +363,20 @@ export class Game {
       this.water.material.opacity = 0.75 + Math.sin(t * 1.2) * 0.1;
     }
 
-    // Animate nightclub dancers in the active interior
+    // Animate interior dancers
     if (this._activeInterior && this._activeInterior.group.visible && this._activeInterior.dancers) {
       for (const dancer of this._activeInterior.dancers) {
         dancer.rotation.y += delta * 1.8;
       }
     }
 
-    // Track player light
+    // Player light follows player
     if (this.playerEntity && this.playerLight) {
       const transform = this.playerEntity.get(TransformComp);
       if (transform) this.playerLight.position.set(transform.x, transform.y + 2.5, transform.z);
     }
 
-    // Update HUD
+    // HUD
     if (this.playerEntity) {
       const playerComp = this.playerEntity.get(PlayerComp);
       const needsComp = this.playerEntity.get(NeedsComp);
@@ -373,9 +387,7 @@ export class Game {
       updateHUD(playerComp, needsComp, this.timeSystem, activityName);
     }
 
-    // Render
     this.composer.render();
-
     requestAnimationFrame((t) => this._loop(t));
   }
 

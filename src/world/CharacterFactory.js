@@ -49,10 +49,10 @@ function buildCharacter(skinColor, shirtColor, pantsColor, hairColor = 0x1A1A1A)
   torso.position.y = 1.1;
   group.add(torso);
 
-  // Upper arms
+  // Upper arms (named for walk animation)
   const uArmGeo = new THREE.CapsuleGeometry(0.055, 0.25, 2, 6);
-  const lUA = shadow(new THREE.Mesh(uArmGeo, SHIRT.clone())); lUA.position.set(-0.24, 1.2, 0); lUA.rotation.z = 0.15; group.add(lUA);
-  const rUA = shadow(new THREE.Mesh(uArmGeo, SHIRT.clone())); rUA.position.set(0.24, 1.2, 0); rUA.rotation.z = -0.15; group.add(rUA);
+  const lUA = shadow(new THREE.Mesh(uArmGeo, SHIRT.clone())); lUA.name = 'lArm'; lUA.position.set(-0.24, 1.2, 0); lUA.rotation.z = 0.15; group.add(lUA);
+  const rUA = shadow(new THREE.Mesh(uArmGeo, SHIRT.clone())); rUA.name = 'rArm'; rUA.position.set(0.24, 1.2, 0); rUA.rotation.z = -0.15; group.add(rUA);
 
   // Forearms
   const fArmGeo = new THREE.CapsuleGeometry(0.045, 0.22, 2, 6);
@@ -64,10 +64,10 @@ function buildCharacter(skinColor, shirtColor, pantsColor, hairColor = 0x1A1A1A)
   hips.position.y = 0.73;
   group.add(hips);
 
-  // Thighs
+  // Thighs (named for walk animation)
   const thighGeo = new THREE.CapsuleGeometry(0.075, 0.28, 2, 6);
-  const lTh = shadow(new THREE.Mesh(thighGeo, PANTS.clone())); lTh.position.set(-0.1, 0.52, 0); group.add(lTh);
-  const rTh = shadow(new THREE.Mesh(thighGeo, PANTS.clone())); rTh.position.set(0.1, 0.52, 0); group.add(rTh);
+  const lTh = shadow(new THREE.Mesh(thighGeo, PANTS.clone())); lTh.name = 'lLeg'; lTh.position.set(-0.1, 0.52, 0); group.add(lTh);
+  const rTh = shadow(new THREE.Mesh(thighGeo, PANTS.clone())); rTh.name = 'rLeg'; rTh.position.set(0.1, 0.52, 0); group.add(rTh);
 
   // Calves
   const calfGeo = new THREE.CapsuleGeometry(0.055, 0.27, 2, 6);
