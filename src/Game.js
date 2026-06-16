@@ -24,6 +24,8 @@ import { initActivityMenu } from './ui/ActivityMenu.js';
 import { initTouchControls } from './ui/TouchControls.js';
 import { createInteriors } from './world/BuildingInteriors.js';
 import { MixamoCharacter } from './world/MixamoCharacter.js';
+import { AvatarPlayer } from './world/AvatarPlayer.js';
+import { showCharacterCreator } from './ui/CharacterCreator.js';
 import { BUILDINGS, NPC_NAMES, NPC_DIALOGUES, ACTIVITIES } from './data/GameData.js';
 
 export class Game {
@@ -42,9 +44,10 @@ export class Game {
     this.rain = null;
     this.trafficSystem = null;
     this.mixamoPlayer = null;
+    this.avatarPlayer = null;
   }
 
-  start() {
+  async start() {
     this._initRenderer();
     this._initScene();
     this._initWorld();
@@ -57,9 +60,7 @@ export class Game {
     this._initEvents();
     this._initPostProcessing();
 
-    // Try Mixamo — falls back silently to procedural if files aren't present
     this.ecsWorld.mixamoLoaded = false;
-    this._loadMixamoPlayer();
 
     setTimeout(() => {
       const loadingOverlay = document.getElementById('loading-overlay');
@@ -68,6 +69,31 @@ export class Game {
 
     this.running = true;
     requestAnimationFrame((t) => this._loop(t));
+
+    // Wait for intro animation to finish (~4s), then show character creator
+    await new Promise(r => setTimeout(r, 4000));
+    const avatarUrl = await showCharacterCreator();
+
+    if (avatarUrl) {
+      this._loadAvatarPlayer(avatarUrl);
+    } else {
+      // No RPM avatar — try local Mixamo files, else stay procedural
+      this._loadMixamoPlayer();
+    }
+  }
+
+  async _loadAvatarPlayer(url) {
+    const av = new AvatarPlayer();
+    const ok = await av.loadFromUrl(url, this.scene, 0, 10);
+    if (ok) {
+      this.avatarPlayer = av;
+      const meshComp = this.playerEntity.get(MeshComp);
+      if (meshComp?.mesh) meshComp.mesh.visible = false;
+      this.ecsWorld.mixamoLoaded = true;
+    } else {
+      // URL failed — fall back to local Mixamo files
+      this._loadMixamoPlayer();
+    }
   }
 
   async _loadMixamoPlayer() {
@@ -545,23 +571,29 @@ export class Game {
       }
     }
 
-    // Mixamo character — sync position/rotation and drive animation state
-    if (this.mixamoPlayer && this.ecsWorld.mixamoLoaded) {
+    // Avatar animation — RPM AvatarPlayer takes priority over Mixamo file-based player
+    if (this.playerEntity && this.ecsWorld.mixamoLoaded) {
       const transform  = this.playerEntity.get(TransformComp);
       const velocity   = this.playerEntity.get(VelocityComp);
       const playerComp = this.playerEntity.get(PlayerComp);
       const meshComp   = this.playerEntity.get(MeshComp);
+      const spd = Math.sqrt(velocity.vx * velocity.vx + velocity.vz * velocity.vz);
+      const rotY = meshComp?.mesh?.rotation.y ?? 0;
 
-      this.mixamoPlayer.syncTo(transform.x, transform.y, transform.z, meshComp.mesh.rotation.y);
-
-      if (playerComp.currentActivity) {
-        this.mixamoPlayer.playActivity(playerComp.currentActivity);
-      } else {
-        const spd = Math.sqrt(velocity.vx * velocity.vx + velocity.vz * velocity.vz);
-        this.mixamoPlayer.setMovementClip(spd);
+      if (this.avatarPlayer) {
+        // RPM avatar — procedural bone animation
+        this.avatarPlayer.syncTo(transform.x, transform.y, transform.z, rotY);
+        this.avatarPlayer.update(delta, timestamp, spd, playerComp.currentActivity || null);
+      } else if (this.mixamoPlayer) {
+        // Mixamo GLB clips
+        this.mixamoPlayer.syncTo(transform.x, transform.y, transform.z, rotY);
+        if (playerComp.currentActivity) {
+          this.mixamoPlayer.playActivity(playerComp.currentActivity);
+        } else {
+          this.mixamoPlayer.setMovementClip(spd);
+        }
+        this.mixamoPlayer.update(delta);
       }
-
-      this.mixamoPlayer.update(delta);
     }
 
     // Activity pose + floating badge (procedural fallback + badge for both modes)
@@ -571,7 +603,7 @@ export class Game {
       const transform  = this.playerEntity.get(TransformComp);
 
       if (playerComp.currentActivity) {
-        // Procedural pose only when Mixamo isn't loaded
+        // Procedural pose only when neither RPM nor Mixamo is loaded
         if (!this.ecsWorld.mixamoLoaded && meshComp?.mesh) {
           this._applyActivityPose(meshComp.mesh, playerComp.currentActivity, timestamp);
         }
