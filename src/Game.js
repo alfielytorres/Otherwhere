@@ -211,6 +211,21 @@ export class Game {
     initHUD(events);
     initActivityMenu(events);
     initTouchControls();
+
+    // Floating activity badge (Sims-style above player head)
+    this._actBadge = document.createElement('div');
+    this._actBadge.style.cssText = `
+      position:fixed;transform:translate(-50%,-100%);
+      background:rgba(6,10,28,0.58);backdrop-filter:blur(18px) saturate(160%);
+      -webkit-backdrop-filter:blur(18px) saturate(160%);
+      border:1px solid rgba(255,255,255,0.1);border-radius:24px;
+      padding:6px 14px 6px 12px;color:white;
+      font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;
+      letter-spacing:0.04em;display:none;pointer-events:none;z-index:200;
+      white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.05);
+    `;
+    document.body.appendChild(this._actBadge);
+    this._wasDoingActivity = false;
   }
 
   _initEvents() {
@@ -328,6 +343,115 @@ export class Game {
     });
   }
 
+  _activityCategory(key) {
+    const MAP = {
+      SLEEP:'sleep', GET_HILOT:'sleep', REST:'sleep', GET_SPECIAL_MASSAGE:'sleep',
+      EAT_ADOBO:'eat', EAT_SINIGANG:'eat', EAT_LECHON:'eat',
+      EAT_ISAW:'eat', EAT_BBQPORK:'eat', EAT_BALUT:'eat', EAT_FOOD_COURT:'eat',
+      DRINK:'drink', BUY_DRINKS:'drink', VIP_ROOM:'drink',
+      COOK:'cook', SHOWER:'wash',
+      WORK:'type', BROWSE_INTERNET:'type', PLAY_GAMES:'type', REPORT_TO_BOSS:'type',
+      EXERCISE:'exercise', TRAIN:'exercise',
+      SING:'sing', WATCH_SHOW:'sing',
+      SOCIALIZE:'chat', CHISMIS:'chat',
+      PRAY:'pray', ATTEND_MASS:'pray', LIGHT_CANDLE:'pray',
+      READ:'read',
+      WATCH_TV:'watch', AIRCON_BREAK:'watch',
+      SHOP:'shop', BUY_SNACKS:'shop', BUY_CIGARETTE:'shop', BUY_GROCERIES:'shop',
+      GAMBLE:'gamble', PAWN_ITEM:'gamble', BUY_CONTRABAND:'gamble',
+    };
+    return MAP[key] || 'default';
+  }
+
+  _applyActivityPose(mesh, activity, ts) {
+    const s = ts * 0.001;
+    const lA = mesh.getObjectByName('lArm');
+    const rA = mesh.getObjectByName('rArm');
+    const lL = mesh.getObjectByName('lLeg');
+    const rL = mesh.getObjectByName('rLeg');
+    const cat = this._activityCategory(activity);
+
+    // Reset legs unless exercise
+    if (lL) lL.rotation.x = 0;
+    if (rL) rL.rotation.x = 0;
+    mesh.rotation.z = 0;
+
+    switch (cat) {
+      case 'sleep':
+        mesh.rotation.z = 1.35;
+        mesh.position.y = 0.18;
+        if (lA) lA.rotation.x = 0.25;
+        if (rA) rA.rotation.x = 0.25;
+        break;
+      case 'eat':
+        if (rA) rA.rotation.x = -1.0 + Math.sin(s * 2.5) * 0.4;
+        if (lA) lA.rotation.x = -0.2;
+        break;
+      case 'drink':
+        if (rA) rA.rotation.x = -1.3 + Math.sin(s * 1.5) * 0.18;
+        if (lA) lA.rotation.x = -0.2;
+        break;
+      case 'cook':
+        if (lA) lA.rotation.x = -0.6 + Math.sin(s * 3.5) * 0.45;
+        if (rA) rA.rotation.x = -0.6 - Math.sin(s * 3.5) * 0.45;
+        break;
+      case 'wash':
+        if (lA) lA.rotation.x = -0.5 + Math.sin(s * 4.5) * 0.55;
+        if (rA) rA.rotation.x = -0.5 - Math.sin(s * 4.5) * 0.55;
+        break;
+      case 'type':
+        if (lA) lA.rotation.x = -0.75 + Math.sin(s * 9) * 0.04;
+        if (rA) rA.rotation.x = -0.75 + Math.sin(s * 9 + 1.3) * 0.04;
+        break;
+      case 'exercise':
+        if (lA) lA.rotation.x =  Math.sin(s * 5.5) * 1.1;
+        if (rA) rA.rotation.x = -Math.sin(s * 5.5) * 1.1;
+        if (lL) lL.rotation.x = -Math.sin(s * 5.5 + 1) * 0.5;
+        if (rL) rL.rotation.x =  Math.sin(s * 5.5 + 1) * 0.5;
+        mesh.position.y = Math.abs(Math.sin(s * 5.5)) * 0.16;
+        break;
+      case 'sing':
+        if (lA) lA.rotation.x = -1.0 + Math.sin(s * 2) * 0.28;
+        if (rA) rA.rotation.x = -1.0 + Math.sin(s * 2 + 0.9) * 0.28;
+        break;
+      case 'chat':
+        if (lA) lA.rotation.x = -0.3 + Math.sin(s * 1.8) * 0.25;
+        if (rA) rA.rotation.x = -0.5 + Math.sin(s * 1.3) * 0.18;
+        break;
+      case 'pray':
+        if (lA) lA.rotation.x = -0.95;
+        if (rA) rA.rotation.x = -0.95;
+        mesh.rotation.z = 0.06;
+        break;
+      case 'read':
+        if (lA) lA.rotation.x = -0.7;
+        if (rA) rA.rotation.x = -0.55;
+        break;
+      case 'watch':
+        if (lA) lA.rotation.x = -0.18;
+        if (rA) rA.rotation.x = -0.18;
+        break;
+      case 'shop':
+      case 'gamble':
+        if (lA) lA.rotation.x = -0.4 + Math.sin(s * 1.4) * 0.22;
+        if (rA) rA.rotation.x = -0.55 + Math.sin(s * 1.1) * 0.18;
+        break;
+      default:
+        if (lA) lA.rotation.x = Math.sin(s * 1.5) * 0.1;
+        if (rA) rA.rotation.x = Math.sin(s * 1.5 + 1) * 0.1;
+    }
+  }
+
+  _resetActivityPose(mesh) {
+    if (!mesh) return;
+    mesh.rotation.z = 0;
+    mesh.position.y = 0;
+    for (const name of ['lArm', 'rArm', 'lLeg', 'rLeg']) {
+      const b = mesh.getObjectByName(name);
+      if (b) b.rotation.x = 0;
+    }
+  }
+
   _initPostProcessing() {
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
@@ -400,6 +524,40 @@ export class Game {
       }
       for (const patron of this._activeInterior.patrons || []) {
         if (patron.head) patron.head.rotation.y = Math.sin(t * 0.35 + patron.phase) * 0.6;
+      }
+    }
+
+    // Activity pose + floating badge
+    if (this.playerEntity) {
+      const playerComp = this.playerEntity.get(PlayerComp);
+      const meshComp   = this.playerEntity.get(MeshComp);
+      const transform  = this.playerEntity.get(TransformComp);
+
+      if (playerComp.currentActivity && meshComp && meshComp.mesh) {
+        this._applyActivityPose(meshComp.mesh, playerComp.currentActivity, timestamp);
+
+        // Floating badge above player's head in screen space
+        if (this._actBadge && transform) {
+          const actData = ACTIVITIES[playerComp.currentActivity];
+          const headPos = new THREE.Vector3(transform.x, transform.y + 2.6, transform.z);
+          headPos.project(this.camera);
+          if (headPos.z < 1) {
+            const sx = (headPos.x * 0.5 + 0.5) * window.innerWidth;
+            const sy = (-headPos.y * 0.5 + 0.5) * window.innerHeight;
+            const bob = Math.sin(timestamp * 0.0022) * 5;
+            this._actBadge.style.left = `${sx}px`;
+            this._actBadge.style.top = `${sy - 16 + bob}px`;
+            if (actData) this._actBadge.textContent = `${actData.emoji} ${actData.name}`;
+            this._actBadge.style.display = 'block';
+          }
+        }
+        this._wasDoingActivity = true;
+      } else {
+        if (this._actBadge) this._actBadge.style.display = 'none';
+        if (this._wasDoingActivity && meshComp && meshComp.mesh) {
+          this._resetActivityPose(meshComp.mesh);
+          this._wasDoingActivity = false;
+        }
       }
     }
 
