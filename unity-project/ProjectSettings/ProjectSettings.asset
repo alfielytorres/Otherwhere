@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  productGUID: a4e2b3c1d5f6789012345678abcdef01
+  AndroidProfiler: 0
+  AndroidFilterTouchesWhenObscured: 0
+  AndroidEnableSustainedPerformanceMode: 0
+  defaultScreenWidthWeb: 1920
+  defaultScreenHeightWeb: 1080
+  m_SplashScreenBackgroundColor: {r: 0.05, g: 0.02, b: 0.15, a: 1}
+  m_VirtualRealitySupported: 0
+  m_ColorSpace: 1
+  m_GraphicsAPIs:
+  - 15
+  - 11
+  m_RenderingPath: 1
+  m_CompanyName: BagongLupa
+  m_ProductName: Otherwhere
+  m_DefaultCursor: {fileID: 0}
+  m_CursorHotspot: {x: 0, y: 0}
+  m_SplashScreenLogos: []
+  m_VirtualRealitySupported: 0
+  targetDevice: 2
+  useOnDemandResources: 0
+  accelerometerFrequency: 60
+  muteOtherAudioSources: 0
+  Prepare IOS For Recording: 0
+  Force IOS Speakers When Recording: 0
+  deferSystemGesturesMode: 0
+  hideHomeButton: 0
+  submitAnalytics: 1
+  useAnimatedAutorotation: 1
+  stripUnusedMeshComponents: 1
+  bakeCollisionMeshes: 0
+  keepLoadedShadersAlive: 0
+  preloadedAssets: []
+  stripEngineCode: 1
+  iPhoneScriptCallOptimization: 0
+  enableInternalProfiler: 0
+  logObjCUncaughtExceptions: 1
+  enableCrashReportAPI: 0
+  cameraUsageDescription:
+  locationUsageDescription:
+  microphoneUsageDescription:
+  bluetoothUsageDescription:
+  switchNetworkInterfaceManager: 0
+  switchSocketMemoryHeapSize: 4096
+  switchScreenResolutionBehavior: 2
+  switchUseCPUProfiler: 0
+  switchLTOSetting: 0
+  switchApplicationID: 0x01004b9000490000
+  switchNSODependencies:
+  switchTitleNames_0:

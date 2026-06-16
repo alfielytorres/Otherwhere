@@ -1,0 +1,68 @@
+{
+  "buildings": [
+    {
+      "id": "home",
+      "name": "Bahay",
+      "description": "Your one-room apartment. Home is home.",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "neonColor": "#5500FF",
+      "activities": ["sleep", "shower", "freelance", "eat_adobo"]
+    },
+    {
+      "id": "bpo_office",
+      "name": "TechConnect BPO",
+      "description": "Night shift. Headset on. Let's go.",
+      "position": { "x": 50, "y": 0, "z": 30 },
+      "neonColor": "#0088FF",
+      "activities": ["work_bpo"]
+    },
+    {
+      "id": "ktv_bar",
+      "name": "Videoke Palace",
+      "description": "Open 'til 3AM. Tambay welcome.",
+      "position": { "x": -30, "y": 0, "z": 50 },
+      "neonColor": "#FF0080",
+      "activities": ["karaoke", "drinks_bar"]
+    },
+    {
+      "id": "gym",
+      "name": "Iron District Gym",
+      "description": "No excuses. 24/7.",
+      "position": { "x": 80, "y": 0, "z": -20 },
+      "neonColor": "#00FFAA",
+      "activities": ["gym"]
+    },
+    {
+      "id": "mall",
+      "name": "Megahub Mall",
+      "description": "Five floors. One aircon. Paradise.",
+      "position": { "x": -60, "y": 0, "z": -40 },
+      "neonColor": "#7B2FBE",
+      "activities": ["mall_chill", "eat_adobo"]
+    },
+    {
+      "id": "church",
+      "name": "San Pedro Parish",
+      "description": "Open doors. No judgment.",
+      "position": { "x": 20, "y": 0, "z": -80 },
+      "neonColor": "#FFD700",
+      "activities": ["attend_mass"]
+    },
+    {
+      "id": "restaurant",
+      "name": "Kainan ni Nanay",
+      "description": "Tapsilan vibes. Best tapsilog in the metro.",
+      "position": { "x": -10, "y": 0, "z": 60 },
+      "neonColor": "#FF6B35",
+      "activities": ["eat_adobo"]
+    },
+    {
+      "id": "bar",
+      "name": "Sigaw Bar",
+      "description": "Cold San Mig. Loud music. Good people.",
+      "position": { "x": 40, "y": 0, "z": 70 },
+      "neonColor": "#FF4500",
+      "activities": ["drinks_bar", "karaoke"]
+    }
+  ]
+}

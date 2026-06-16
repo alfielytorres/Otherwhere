@@ -1,0 +1,140 @@
+{
+  "activities": [
+    {
+      "id": "eat_adobo",
+      "displayName": "Kumain ng Adobo",
+      "flavorText": "Nothing hits like home-cooked adobo at midnight. Real ones know.",
+      "cost": 80,
+      "durationMinutes": 30,
+      "moneyReward": 0,
+      "accentColor": "#FF6B35",
+      "needEffects": [
+        { "need": "Gutom", "delta": 50 },
+        { "need": "Kasiyahan", "delta": 15 }
+      ]
+    },
+    {
+      "id": "work_bpo",
+      "displayName": "Mag-trabaho sa BPO",
+      "flavorText": "Another shift. Another peso. Grind never stops.",
+      "cost": 0,
+      "durationMinutes": 480,
+      "moneyReward": 600,
+      "accentColor": "#5500FF",
+      "needEffects": [
+        { "need": "Lakas", "delta": -40 },
+        { "need": "Lipunan", "delta": 10 },
+        { "need": "Kasiyahan", "delta": -20 }
+      ]
+    },
+    {
+      "id": "karaoke",
+      "displayName": "Kumanta sa KTV",
+      "flavorText": "Microphone check. This is your moment. Ikaw na.",
+      "cost": 200,
+      "durationMinutes": 120,
+      "moneyReward": 0,
+      "accentColor": "#FF0080",
+      "needEffects": [
+        { "need": "Kasiyahan", "delta": 60 },
+        { "need": "Lipunan", "delta": 40 },
+        { "need": "Lakas", "delta": -10 }
+      ]
+    },
+    {
+      "id": "gym",
+      "displayName": "Mag-gym",
+      "flavorText": "Gains don't come free. Bayad muna.",
+      "cost": 150,
+      "durationMinutes": 90,
+      "moneyReward": 0,
+      "accentColor": "#00FFAA",
+      "needEffects": [
+        { "need": "Lakas", "delta": 40 },
+        { "need": "Kasiyahan", "delta": 20 },
+        { "need": "Gutom", "delta": -20 }
+      ]
+    },
+    {
+      "id": "shower",
+      "displayName": "Maligo",
+      "flavorText": "Quick shower. You needed this.",
+      "cost": 0,
+      "durationMinutes": 20,
+      "moneyReward": 0,
+      "accentColor": "#00BFFF",
+      "needEffects": [
+        { "need": "Kalinisan", "delta": 70 },
+        { "need": "Lakas", "delta": 10 }
+      ]
+    },
+    {
+      "id": "sleep",
+      "displayName": "Matulog",
+      "flavorText": "Shut it down. Tomorrow's another grind.",
+      "cost": 0,
+      "durationMinutes": 480,
+      "moneyReward": 0,
+      "accentColor": "#3A0CA3",
+      "needEffects": [
+        { "need": "Lakas", "delta": 100 },
+        { "need": "Gutom", "delta": -20 }
+      ]
+    },
+    {
+      "id": "attend_mass",
+      "displayName": "Pumunta sa Simbahan",
+      "flavorText": "Lola would be proud.",
+      "cost": 0,
+      "durationMinutes": 60,
+      "moneyReward": 0,
+      "accentColor": "#FFD700",
+      "needEffects": [
+        { "need": "Kasiyahan", "delta": 30 },
+        { "need": "Lipunan", "delta": 20 }
+      ]
+    },
+    {
+      "id": "mall_chill",
+      "displayName": "Mag-ikot sa Mall",
+      "flavorText": "Air-con. Escalators. The Filipino dream.",
+      "cost": 50,
+      "durationMinutes": 90,
+      "moneyReward": 0,
+      "accentColor": "#7B2FBE",
+      "needEffects": [
+        { "need": "Kasiyahan", "delta": 30 },
+        { "need": "Lipunan", "delta": 15 },
+        { "need": "Gutom", "delta": -10 }
+      ]
+    },
+    {
+      "id": "drinks_bar",
+      "displayName": "Uminom sa Bar",
+      "flavorText": "One beer. Just one. Sige na.",
+      "cost": 180,
+      "durationMinutes": 120,
+      "moneyReward": 0,
+      "accentColor": "#FF4500",
+      "needEffects": [
+        { "need": "Lipunan", "delta": 50 },
+        { "need": "Kasiyahan", "delta": 40 },
+        { "need": "Lakas", "delta": -15 },
+        { "need": "Kalinisan", "delta": -10 }
+      ]
+    },
+    {
+      "id": "freelance",
+      "displayName": "Mag-Freelance Online",
+      "flavorText": "Client wants revisions. Again. Pero okay lang, pera yan.",
+      "cost": 0,
+      "durationMinutes": 240,
+      "moneyReward": 350,
+      "accentColor": "#00FF88",
+      "needEffects": [
+        { "need": "Lakas", "delta": -25 },
+        { "need": "Kasiyahan", "delta": -10 }
+      ]
+    }
+  ]
+}
